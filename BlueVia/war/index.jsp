@@ -58,6 +58,7 @@
     border-radius:25px; 
     float: right; 
     padding:7px;
+    font-size:small;
       }
     .user_info{
         border: 3px solid blue; 
@@ -84,40 +85,40 @@
         results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());                  
         if (!results.isEmpty()){
         	bvUser = results.remove(0);
+        	latitude="";
+        	longitude="";
         }else
         	bvUser=null;
    }
 %>
- <div class="main" style="">
+ <div class="main">
     <img src="images/BV-728x90.png" style="width:100%;"/>
     <div style="padding:2px;">
     <%if (user == null) {%>
-        <div class="sign-up" style="font-size:small;">
+        <div class="sign-up">
 	    <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a>
 	    </div>	  
 	    Welcome to Bluevia @ Google App Engine.<br>
 	    Sign up to start playing with BlueVia APIs	
-	 </div>        
+	         
     <% } else { %>        
-        <div class="sign-up" style="font-size:small;">
+        <div class="sign-up">
         <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">Sign out</a>
         </div>
         <% if (bvUser!=null){ %>             
-            <div class="sign-up" style="font-size:small;"> <a href="bluevia/remove-user">Delete Account</a></div>
+            <div class="sign-up"> <a href="bluevia/remove-user">Delete Account</a></div>
         <%} %>    
         Hello, <%=user.getNickname() %><br>
         Welcome to Bluevia @ Google App Engine.<br>
-        </div>
+        
         <% if (bvUser==null){%>
             Before to start, you should authorize. Just click <a href="/bluevia">here</a>.        
         <% } else { %>                        
             <div style="padding:2px;">
-	            <div class="user_info" style="float: left; width:300px;">
+	            <div class="user_info" style="float:left; width:300px;">
 		            <h3>Personal Profile</h3>
 		            <table><tr> <td>Nickname:</td><td><%=user.getNickname() %></td></tr>
-		                   <tr> <td>Mail Address:</td><td><%= user.getEmail()%></td></tr>
-		                   <tr> <td>Latitude:</td><td><%= latitude %></td></tr>
-		                   <tr> <td>Longitude:</td><td><%= longitude %></td></tr>		                             
+		                   <tr> <td>Mail Address:</td><td><%= user.getEmail()%></td></tr>		                                                
 		            </table>
 	            </div>
 	              <div class="user_info" style="float:right;width:440px; height:440px">
@@ -134,12 +135,11 @@
                       Query msgQuery= new Query();
                       msgQuery.setAncestor(userKey);
                       msgQuery.addFilter(Entity.KEY_RESERVED_PROPERTY,Query.FilterOperator.GREATER_THAN,userKey);
-                      //msgQuery.addSort("Date",SortDirection.ASCENDING);
-                      
+                                            
                       List<Entity> msgList = datastore.prepare(msgQuery).asList(FetchOptions.Builder.withLimit(5));
                       
                       for (Entity msgItem : msgList) {
-                   %> 
+                %> 
                       Date: <%= msgItem.getProperty("Date") %><br>
                       Sender: <%= msgItem.getProperty("Sender") %><br>
                       Message:<%= msgItem.getProperty("Message") %><br>
@@ -148,7 +148,7 @@
 	              %>
 	              </div>
 	            <div style="float: left;padding:2px;">
-		            <div class="user_info" style="width:300px;">
+		            <div class="user_info" style="width:297px;">
 		            <h3>SMS Service</h3>
 		            <form action="/bluevia/send-sms" method="post">
 		            Contact:<br />
@@ -161,9 +161,8 @@
 	            </div>
             </div>      
        <% } %>               
-    <% } %>    
-
+    <% } %>
+    </div>    
   </div>  
-  
 </body>
 </html>

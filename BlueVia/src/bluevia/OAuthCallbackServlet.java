@@ -30,13 +30,8 @@ import oauth.signpost.basic.DefaultOAuthProvider;
 public class OAuthCallbackServlet extends HttpServlet {
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {			
 		
-		String consumer_key = (String) req.getSession().getAttribute("consumer_key");
-		String consumer_secret=(String) req.getSession().getAttribute("consumer_secret");
-		
-		if ((consumer_key==null)&&(consumer_secret==null)){
-			req.getSession().setAttribute("consumer_key", Util.getConsumerKey());
-			req.getSession().setAttribute("consumer_secret", Util.getCosumerSecret());		
-		}
+		String consumer_key = Util.getConsumerKey();
+		String consumer_secret=Util.getCosumerSecret();
 		
 		String access_key = (String) req.getSession().getAttribute("access_key");
 		String access_secret=(String) req.getSession().getAttribute("access_secret");

@@ -40,16 +40,9 @@ public class BlueViaServlet extends HttpServlet {
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		
-		String consumer_key = (String) req.getSession().getAttribute("consumer_key");
-		String consumer_secret=(String) req.getSession().getAttribute("consumer_secret");
+		String consumer_key = Util.getConsumerKey();
+		String consumer_secret=Util.getCosumerSecret();
 		
-		if ((consumer_key==null)&&(consumer_secret==null)){
-			consumer_key=Util.getConsumerKey();
-			consumer_secret=Util.getCosumerSecret();
-			req.getSession().setAttribute("consumer_key",consumer_key );
-			req.getSession().setAttribute("consumer_secret", consumer_secret);		
-		}
-
 		String access_key=(String)req.getSession().getAttribute("access_key");
 		String access_secret=(String) req.getSession().getAttribute("access_secret");		
 
@@ -91,8 +84,7 @@ public class BlueViaServlet extends HttpServlet {
 	        DatastoreService datastore = Util.getDatastoreServiceInstance();
 	        
 	        datastore.put(blueviaUser);
-	        req.getSession().removeAttribute("consumer_key");
-	        req.getSession().removeAttribute("consumer_secret");
+	        
 	        req.getSession().removeAttribute("request_key");
 	        req.getSession().removeAttribute("request_secret");
 	        req.getSession().removeAttribute("access_key");
