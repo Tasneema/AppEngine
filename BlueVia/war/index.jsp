@@ -43,27 +43,26 @@
     min-width: 810px;
     max-width: 810px;
     padding-top:5px;
-        padding-left: 50px;
-        padding-right: 498px;   
-      }
+    padding-left: 50px;   
+    }
       .main{    
     border: 5px double blue;
     font-size: large;
-    min-height:140px;
-    height:100%;
     padding:5px;  
-      }
+    }
       .sign-up{ 
     border: 3px solid blue; 
     border-radius:25px; 
     float: right; 
-    padding:7px;
+    padding:5px;
+    margin:3px;
     font-size:small;
       }
     .user_info{
         border: 3px solid blue; 
         border-radius:25px;
-        padding:7px;
+        padding:5px;
+        margin:3px;
     }
     </style>
   </head>
@@ -93,14 +92,14 @@
 %>
  <div class="main">
     <img src="images/BV-728x90.png" style="width:100%;"/>
-    <div style="padding:2px;">
+    <div>
     <%if (user == null) {%>
         <div class="sign-up">
 	    <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a>
 	    </div>	  
 	    Welcome to Bluevia @ Google App Engine.<br>
 	    Sign up to start playing with BlueVia APIs	
-	         
+    </div>     
     <% } else { %>        
         <div class="sign-up">
         <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">Sign out</a>
@@ -110,22 +109,26 @@
         <%} %>    
         Hello, <%=user.getNickname() %><br>
         Welcome to Bluevia @ Google App Engine.<br>
-        
+    </div>
         <% if (bvUser==null){%>
             Before to start, you should authorize. Just click <a href="/bluevia">here</a>.        
-        <% } else { %>                        
-            <div style="padding:2px;">
-	            <div class="user_info" style="float:left; width:300px;">
-		            <h3>Personal Profile</h3>
-		            <table><tr> <td>Nickname:</td><td><%=user.getNickname() %></td></tr>
-		                   <tr> <td>Mail Address:</td><td><%= user.getEmail()%></td></tr>		                                                
-		            </table>
-	            </div>
-	              <div class="user_info" style="float:right;width:440px; height:440px">
-	              <h3><%=user.getNickname() %>'s Messages</h3>
-	              <%
-	              DatastoreService datastore = Util.getDatastoreServiceInstance();
-	              Query query = new Query("BlueViaUser");
+        <% } else { %>
+                    <table>
+            <tr><td>
+                <div class="user_info" style="width:300px;">
+                    <h3>Personal Profile</h3>
+                    <table><tr> <td>Nickname:</td><td><%=user.getNickname() %></td></tr>
+                           <tr> <td>Mail Address:</td><td><%= user.getEmail()%></td></tr>
+                    </table>
+                                                                                                     
+                </div>
+                </td>
+                <td rowspan="2" style="vertical-align:top;">
+                  <div class="user_info" style="width:440px;height:400px;">
+                  <h3><%=user.getNickname() %>'s Messages</h3>
+                  <%
+                  DatastoreService datastore = Util.getDatastoreServiceInstance();
+                  Query query = new Query("BlueViaUser");
                   query.addFilter("mail", Query.FilterOperator.EQUAL, user.getEmail());
                   List<Entity> userQuery = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
                   if (!userQuery.isEmpty()){
@@ -143,26 +146,31 @@
                       Date: <%= msgItem.getProperty("Date") %><br>
                       Sender: <%= msgItem.getProperty("Sender") %><br>
                       Message:<%= msgItem.getProperty("Message") %><br>
+                      <hr>
                    <% }
                   }
-	              %>
-	              </div>
-	            <div style="float: left;padding:2px;">
-		            <div class="user_info" style="width:297px;">
-		            <h3>SMS Service</h3>
-		            <form action="/bluevia/send-sms" method="post">
-		            Contact:<br />
-		            <textarea name="phone-number" rows="1" cols="30"></textarea><br />
-		            Text:<br />
-		            <textarea name="sms-message" rows="3" cols="30"></textarea><br />
-		            <input type="submit" value="Send SMS" />   
-		            </form>
-		            </div>
-	            </div>
-            </div>      
+                  %>
+                  </div>
+                  </td>
+                  </tr>
+              <tr>
+                <td>  
+                    <div class="user_info" style="width:300px;">
+                    <h3>SMS Service</h3>
+                    <form action="/bluevia/send-sms" method="post">
+                    Contact:<br />
+                    <textarea name="phone-number" rows="1" cols="30"></textarea><br />
+                    Text:<br />
+                    <textarea name="sms-message" rows="3" cols="30"></textarea><br />
+                    <input type="submit" value="Send SMS" />   
+                    </form>
+                    </div>
+                </td>
+            </tr>            
+            </table>     
+                                
        <% } %>               
-    <% } %>
-    </div>    
+    <% } %>    
   </div>  
 </body>
 </html>
