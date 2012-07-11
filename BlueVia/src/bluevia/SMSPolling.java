@@ -29,6 +29,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.json.me.JSONObject;
+import org.json.me.JSONArray;
+import org.json.me.JSONException;
 
 import oauth.signpost.OAuthConsumer;
 import oauth.signpost.basic.DefaultOAuthConsumer;
@@ -50,24 +52,37 @@ import bluevia.*;
 
 @SuppressWarnings("serial")
 public class SMSPolling extends HttpServlet {
+	
 	private static final Logger log = Logger.getLogger(SMSPolling.class.getName());
-	 
+	private static final String MO_URI_UK = "https://api.bluevia.com/services/REST/SMS/inbound/445480605/messages?version=v1&alt=json";
+	private static final String MO_URI_SP = "https://api.bluevia.com/services/REST/SMS/inbound/34217040/messages?version=v1&alt=json";
+	private static final String MO_URI_GE = "https://api.bluevia.com/services/REST/SMS/inbound/493000/messages?version=v1&alt=json";
+	private static final String MO_URI_BR = "https://api.bluevia.com/services/REST/SMS/inbound/55281/messages?version=v1&alt=json";
+	private static final String MO_URI_MX = "https://api.bluevia.com/services/REST/SMS/inbound/524040/messages?version=v1&alt=json";
+	private static final String MO_URI_AR = "https://api.bluevia.com/services/REST/SMS/inbound/546780/messages?version=v1&alt=json";
+	private static final String MO_URI_CH = "https://api.bluevia.com/services/REST/SMS/inbound/5698765/messages?version=v1&alt=json";
+	private static final String MO_URI_CO = "https://api.bluevia.com/services/REST/SMS/inbound/572505/messages?version=v1&alt=json";
+		 
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
-    	Thread threadUK = ThreadManager.createBackgroundThread(new Runnable() {
+    	Thread threadPoller = ThreadManager.createBackgroundThread(new Runnable() {
     		public void run() {
-    			String consumer_key = Util.getConsumerKey();
-    			String consumer_secret = Util.getCosumerSecret();
+    			String consumer_key = Util.getBvConsumerKey();
+    			String consumer_secret = Util.getBvConsumerSecret();
     			BufferedReader br =null;
-
-    			try{	 		
-    				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();			    	
-    				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer (consumer_key, consumer_secret);
-    				consumer.setMessageSigner(new HmacSha1MessageSigner());									
-    				URL apiURI = new URL ("https://api.bluevia.com/services/REST/SMS/inbound/445480605/messages?version=v1&alt=json");
-
-    				int rc = 0;					
-    				do{						
+    			int countryIndex=0;
+    			String [] countryURIs ={MO_URI_UK,MO_URI_SP,MO_URI_GE,MO_URI_BR,MO_URI_MX, MO_URI_AR,MO_URI_CH,MO_URI_CO};
+    			while (true){
+	    			try{	 		
+	    				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();			    	
+	    				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer (consumer_key, consumer_secret);
+	    				consumer.setMessageSigner(new HmacSha1MessageSigner());									
+	    				URL apiURI = new URL (countryURIs[countryIndex]);
+	    				
+	    				countryIndex=(countryIndex+1) % countryURIs.length;
+	    				
+	    				int rc = 0;					
+	    										
     					HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();			
     					request.setRequestMethod("GET");
 
@@ -89,427 +104,80 @@ public class SMSPolling extends HttpServlet {
     						DatastoreService datastore = Util.getDatastoreServiceInstance();
 					    	Transaction txn = datastore.beginTransaction();
     						try{
-    							// FIXIT: Asume un solo sms por llamada. 
-    							JSONObject parser = new JSONObject(doc.toString());
-    							parser = (JSONObject) parser.get("receivedSMS");						
-    							JSONObject sms = (JSONObject)parser.get("receivedSMS");
-    							String message = sms.getString("message");
-    							String originAddress= ((JSONObject)sms.get("originAddress")).getString("phoneNumber");
-    							String dateTime = sms.getString("dateTime"); 
-    									
-    							StringTokenizer msgParser = new StringTokenizer(message);
-    						
-    							// Removing app id
-    							msgParser.nextToken();
-    							String userAlias = msgParser.nextToken();
-    							
-    							String msg = "";
-    							while (msgParser.hasMoreTokens())
-    								msg += " "+ msgParser.nextToken();    						    					    	
+    							JSONObject apiResponse;
+    							JSONObject smsPool;
+    							JSONArray  smsInfo;
 
-    					    	Query query = new Query("BlueViaUser");
-    					    	query.addFilter("alias", Query.FilterOperator.EQUAL, userAlias);
-    					    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-    					    	if (!results.isEmpty()){
-								    Entity bvUser = results.remove(0);
-								    Key userKey = bvUser.getKey();
-								    
-								    Entity userMsg = new Entity("Message", userKey);
-								    userMsg.setProperty("Sender", originAddress);
-								    userMsg.setProperty("Message", msg);
-								    userMsg.setProperty("Date", dateTime);
-							    	
-								    datastore.put(userMsg);								    
-    					    	}
-    						    txn.commit();
+							    apiResponse = new JSONObject(doc.toString());
+					            if (apiResponse.getString("receivedSMS")!=null){
+					            	smsPool = apiResponse.getJSONObject("receivedSMS");  
+					            	smsInfo = smsPool.getJSONArray("receivedSMS");
+					            
+					            	String szMessage;
+					            	String szOrigin;
+					            	String szDate;
+					                    	        
+					            	for (int i=0; i<smsInfo.length(); i++){
+					            		szMessage = smsInfo.getJSONObject(i).getString("message");
+					            		szOrigin = smsInfo.getJSONObject(i).getJSONObject("originAddress").getString("phoneNumber");
+					            		szDate = smsInfo.getJSONObject(i).getString("dateTime");
+					            		
+					            		StringTokenizer msgParser = new StringTokenizer(szMessage);
+			    						
+		    							// Removing app id
+		    							msgParser.nextToken();
+		    							String userAlias = msgParser.nextToken();
+		    							
+		    							String msg = "";
+		    							while (msgParser.hasMoreTokens())
+		    								msg += " "+ msgParser.nextToken();    						    					    	
+
+		    							Query query = new Query("BlueViaUser");
+		    					    	query.addFilter("alias", Query.FilterOperator.EQUAL, userAlias);
+		    					    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
+		    					    	if (!results.isEmpty()){
+										    Entity bvUser = results.remove(0);
+										    Key userKey = bvUser.getKey();
+										    
+										    Entity userMsg = new Entity("Message", userKey);
+										    userMsg.setProperty("Sender", szOrigin);
+										    userMsg.setProperty("Message", msg);
+										    userMsg.setProperty("Date", szDate);
+									    	
+										    datastore.put(userMsg);								    
+		    					    	}
+		    						    txn.commit();					    					            	
+					            	}
+					            }else{
+					            	log.warning("No messages");
+					            	if (txn.isActive())
+	    						        txn.rollback();
+					            }
+    						    
+    						}catch (JSONException e){
+    							log.severe(e.getMessage());
     						}catch(Exception e){
-    							log.info(e.getMessage());
+    							log.severe(e.getMessage());
     						}finally {
-    						    if (txn.isActive()) {
-    						        txn.rollback();
-    						    }
+    						    if (txn.isActive())
+    						        txn.rollback();    						
     						}
-    						
-    						Thread.currentThread();
-    						Thread.sleep(1500);					
-
+    							    				
     					}else if (rc==HttpURLConnection.HTTP_NO_CONTENT) {
-    						Thread.currentThread();
-    						Thread.sleep(1500);						
+    						log.warning(String.format("No content from: %s", apiURI.getPath()));
     					} else
-    						log.info(String.format("%d: %s",rc,request.getResponseMessage()));
-    				}while ((rc==HttpURLConnection.HTTP_OK) || (rc==HttpURLConnection.HTTP_NO_CONTENT));
+    						log.severe(String.format("%d: %s",rc,request.getResponseMessage()));
+    				
+	    				Thread.currentThread();
+    					Thread.sleep(5000);					
 
-    			}catch(Exception e){
-    				log.info(e.getMessage());
-    			}	
+	    			}catch(Exception e){
+	    				log.severe(e.getMessage());
+	    			}		    			
+    		    }
     		}
     	});
-    	
-    	Thread threadBrasil = ThreadManager.createBackgroundThread(new Runnable() {
-    		public void run() {
-    			String consumer_key = Util.getConsumerKey();
-    			String consumer_secret = Util.getCosumerSecret();
-    			BufferedReader br =null;
-
-    			try{	 		
-    				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();			    	
-    				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer (consumer_key, consumer_secret);
-    				consumer.setMessageSigner(new HmacSha1MessageSigner());									
-    				URL apiURI = new URL ("https://api.bluevia.com/services/REST/SMS/inbound/55281/messages?version=v1&alt=json");
-
-    				int rc = 0;					
-    				do{						
-    					HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();			
-    					request.setRequestMethod("GET");
-
-    					consumer.sign(request);
-
-    					rc = request.getResponseCode();
-
-    					if (rc==HttpURLConnection.HTTP_OK){					
-    						br = new BufferedReader (new InputStreamReader (request.getInputStream()));
-    						StringBuffer doc = new StringBuffer();
-    						String line;
-
-    						do{
-    							line = br.readLine();
-    							if (line!=null)
-    								doc.append(line);
-    						}while (line!=null);
-
-    						DatastoreService datastore = Util.getDatastoreServiceInstance();
-					    	Transaction txn = datastore.beginTransaction();
-    						try{
-    							JSONObject parser = new JSONObject(doc.toString());
-    							parser = (JSONObject) parser.get("receivedSMS");						
-    							JSONObject sms = (JSONObject)parser.get("receivedSMS");
-    							String message = sms.getString("message");
-    							String originAddress= ((JSONObject)sms.get("originAddress")).getString("phoneNumber");
-    							String dateTime = sms.getString("dateTime"); 
-    									
-    							StringTokenizer msgParser = new StringTokenizer(message);
-    							// Removing app id
-    							msgParser.nextToken();
-    							String userAlias = msgParser.nextToken();
-    							
-    							String msg = "";
-    							while (msgParser.hasMoreTokens())
-    								msg += " "+ msgParser.nextToken();    						    					    	
-
-    					    	Query query = new Query("BlueViaUser");
-    					    	query.addFilter("alias", Query.FilterOperator.EQUAL, userAlias);
-    					    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-    					    	if (!results.isEmpty()){
-								    Entity bvUser = results.remove(0);
-								    Key userKey = bvUser.getKey();
-								    
-								    Entity userMsg = new Entity("Message", userKey);
-								    userMsg.setProperty("Sender", originAddress);
-								    userMsg.setProperty("Message", msg);
-								    userMsg.setProperty("Date", dateTime);
-							    	
-								    datastore.put(userMsg);								    
-    					    	}
-    						    txn.commit();
-    						}catch(Exception e){
-    							log.info(e.getMessage());
-    						}finally {
-    						    if (txn.isActive()) {
-    						        txn.rollback();
-    						    }
-    						}
-    						
-    						Thread.currentThread();
-    						Thread.sleep(1500);					
-
-    					}else if (rc==HttpURLConnection.HTTP_NO_CONTENT) {
-    						Thread.currentThread();
-    						Thread.sleep(1500);						
-    					} else
-    						log.info(String.format("%d: %s",rc,request.getResponseMessage()));
-    				}while ((rc==HttpURLConnection.HTTP_OK) || (rc==HttpURLConnection.HTTP_NO_CONTENT));
-
-    			}catch(Exception e){
-    				log.info(e.getMessage());
-    			}	
-    		}
-    	});
-
-    	Thread threadSpain = ThreadManager.createBackgroundThread(new Runnable() {
-    		public void run() {
-    			String consumer_key = Util.getConsumerKey();
-    			String consumer_secret = Util.getCosumerSecret();
-    			BufferedReader br =null;
-
-    			try{	 		
-    				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();			    	
-    				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer (consumer_key, consumer_secret);
-    				consumer.setMessageSigner(new HmacSha1MessageSigner());									
-    				URL apiURI = new URL ("https://api.bluevia.com/services/REST/SMS/inbound/217040/messages?version=v1&alt=json");
-
-    				int rc = 0;					
-    				do{						
-    					HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();			
-    					request.setRequestMethod("GET");
-
-    					consumer.sign(request);
-
-    					rc = request.getResponseCode();
-
-    					if (rc==HttpURLConnection.HTTP_OK){					
-    						br = new BufferedReader (new InputStreamReader (request.getInputStream()));
-    						StringBuffer doc = new StringBuffer();
-    						String line;
-
-    						do{
-    							line = br.readLine();
-    							if (line!=null)
-    								doc.append(line);
-    						}while (line!=null);
-
-    						DatastoreService datastore = Util.getDatastoreServiceInstance();
-					    	Transaction txn = datastore.beginTransaction();
-    						try{
-    							JSONObject parser = new JSONObject(doc.toString());
-    							parser = (JSONObject) parser.get("receivedSMS");						
-    							JSONObject sms = (JSONObject)parser.get("receivedSMS");
-    							String message = sms.getString("message");
-    							String originAddress= ((JSONObject)sms.get("originAddress")).getString("phoneNumber");
-    							String dateTime = sms.getString("dateTime"); 
-    									
-    							StringTokenizer msgParser = new StringTokenizer(message);
-    							// Removing app id
-    							msgParser.nextToken();
-    							String userAlias = msgParser.nextToken();
-    							
-    							String msg = "";
-    							while (msgParser.hasMoreTokens())
-    								msg += " "+ msgParser.nextToken();    						    					    	
-
-    					    	Query query = new Query("BlueViaUser");
-    					    	query.addFilter("alias", Query.FilterOperator.EQUAL, userAlias);
-    					    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-    					    	if (!results.isEmpty()){
-								    Entity bvUser = results.remove(0);
-								    Key userKey = bvUser.getKey();
-								    
-								    Entity userMsg = new Entity("Message", userKey);
-								    userMsg.setProperty("Sender", originAddress);
-								    userMsg.setProperty("Message", msg);
-								    userMsg.setProperty("Date", dateTime);
-							    	
-								    datastore.put(userMsg);								    
-    					    	}
-    						    txn.commit();
-    						}catch(Exception e){
-    							log.info(e.getMessage());
-    						}finally {
-    						    if (txn.isActive()) {
-    						        txn.rollback();
-    						    }
-    						}
-    						
-    						Thread.currentThread();
-    						Thread.sleep(1500);					
-
-    					}else if (rc==HttpURLConnection.HTTP_NO_CONTENT) {
-    						Thread.currentThread();
-    						Thread.sleep(1500);						
-    					} else
-    						log.info(String.format("%d: %s",rc,request.getResponseMessage()));
-    				}while ((rc==HttpURLConnection.HTTP_OK) || (rc==HttpURLConnection.HTTP_NO_CONTENT));
-
-    			}catch(Exception e){
-    				log.info(e.getMessage());
-    			}	
-    		}
-    	});
-    	
-    	Thread threadArgentina = ThreadManager.createBackgroundThread(new Runnable() {
-    		public void run() {
-    			String consumer_key = Util.getConsumerKey();
-    			String consumer_secret = Util.getCosumerSecret();
-    			BufferedReader br =null;
-
-    			try{	 		
-    				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();			    	
-    				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer (consumer_key, consumer_secret);
-    				consumer.setMessageSigner(new HmacSha1MessageSigner());									
-    				URL apiURI = new URL ("https://api.bluevia.com/services/REST/SMS/inbound/6780/messages?version=v1&alt=json");
-
-    				int rc = 0;					
-    				do{						
-    					HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();			
-    					request.setRequestMethod("GET");
-
-    					consumer.sign(request);
-
-    					rc = request.getResponseCode();
-
-    					if (rc==HttpURLConnection.HTTP_OK){					
-    						br = new BufferedReader (new InputStreamReader (request.getInputStream()));
-    						StringBuffer doc = new StringBuffer();
-    						String line;
-
-    						do{
-    							line = br.readLine();
-    							if (line!=null)
-    								doc.append(line);
-    						}while (line!=null);
-
-    						DatastoreService datastore = Util.getDatastoreServiceInstance();
-					    	Transaction txn = datastore.beginTransaction();
-    						try{
-    							JSONObject parser = new JSONObject(doc.toString());
-    							parser = (JSONObject) parser.get("receivedSMS");						
-    							JSONObject sms = (JSONObject)parser.get("receivedSMS");
-    							String message = sms.getString("message");
-    							String originAddress= ((JSONObject)sms.get("originAddress")).getString("phoneNumber");
-    							String dateTime = sms.getString("dateTime"); 
-    									
-    							StringTokenizer msgParser = new StringTokenizer(message);
-    							// Removing app id
-    							msgParser.nextToken();
-    							String userAlias = msgParser.nextToken();
-    							
-    							String msg = "";
-    							while (msgParser.hasMoreTokens())
-    								msg += " "+ msgParser.nextToken();    						    					    	
-
-    					    	Query query = new Query("BlueViaUser");
-    					    	query.addFilter("alias", Query.FilterOperator.EQUAL, userAlias);
-    					    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-    					    	if (!results.isEmpty()){
-								    Entity bvUser = results.remove(0);
-								    Key userKey = bvUser.getKey();
-								    
-								    Entity userMsg = new Entity("Message", userKey);
-								    userMsg.setProperty("Sender", originAddress);
-								    userMsg.setProperty("Message", msg);
-								    userMsg.setProperty("Date", dateTime);
-							    	
-								    datastore.put(userMsg);								    
-    					    	}
-    						    txn.commit();
-    						}catch(Exception e){
-    							log.info(e.getMessage());
-    						}finally {
-    						    if (txn.isActive()) {
-    						        txn.rollback();
-    						    }
-    						}
-    						
-    						Thread.currentThread();
-    						Thread.sleep(1500);					
-
-    					}else if (rc==HttpURLConnection.HTTP_NO_CONTENT) {
-    						Thread.currentThread();
-    						Thread.sleep(1500);						
-    					} else
-    						log.info(String.format("%d: %s",rc,request.getResponseMessage()));
-    				}while ((rc==HttpURLConnection.HTTP_OK) || (rc==HttpURLConnection.HTTP_NO_CONTENT));
-
-    			}catch(Exception e){
-    				log.info(e.getMessage());
-    			}	
-    		}
-    	});
-    	
-    	Thread threadMexico = ThreadManager.createBackgroundThread(new Runnable() {
-    		public void run() {
-    			String consumer_key = Util.getConsumerKey();
-    			String consumer_secret = Util.getCosumerSecret();
-    			BufferedReader br =null;
-
-    			try{	 		
-    				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();			    	
-    				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer (consumer_key, consumer_secret);
-    				consumer.setMessageSigner(new HmacSha1MessageSigner());									
-    				URL apiURI = new URL ("https://api.bluevia.com/services/REST/SMS/inbound/4040/messages?version=v1&alt=json");
-
-    				int rc = 0;					
-    				do{						
-    					HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();			
-    					request.setRequestMethod("GET");
-
-    					consumer.sign(request);
-
-    					rc = request.getResponseCode();
-
-    					if (rc==HttpURLConnection.HTTP_OK){					
-    						br = new BufferedReader (new InputStreamReader (request.getInputStream()));
-    						StringBuffer doc = new StringBuffer();
-    						String line;
-
-    						do{
-    							line = br.readLine();
-    							if (line!=null)
-    								doc.append(line);
-    						}while (line!=null);
-
-    						DatastoreService datastore = Util.getDatastoreServiceInstance();
-					    	Transaction txn = datastore.beginTransaction();
-    						try{
-    							JSONObject parser = new JSONObject(doc.toString());
-    							parser = (JSONObject) parser.get("receivedSMS");						
-    							JSONObject sms = (JSONObject)parser.get("receivedSMS");
-    							String message = sms.getString("message");
-    							String originAddress= ((JSONObject)sms.get("originAddress")).getString("phoneNumber");
-    							String dateTime = sms.getString("dateTime"); 
-    									
-    							StringTokenizer msgParser = new StringTokenizer(message);
-    							// Removing app id
-    							msgParser.nextToken();
-    							String userAlias = msgParser.nextToken();
-    							
-    							String msg = "";
-    							while (msgParser.hasMoreTokens())
-    								msg += " "+ msgParser.nextToken();    						    					    	
-
-    					    	Query query = new Query("BlueViaUser");
-    					    	query.addFilter("alias", Query.FilterOperator.EQUAL, userAlias);
-    					    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-    					    	if (!results.isEmpty()){
-								    Entity bvUser = results.remove(0);
-								    Key userKey = bvUser.getKey();
-								    
-								    Entity userMsg = new Entity("Message", userKey);
-								    userMsg.setProperty("Sender", originAddress);
-								    userMsg.setProperty("Message", msg);
-								    userMsg.setProperty("Date", dateTime);
-							    	
-								    datastore.put(userMsg);								    
-    					    	}
-    						    txn.commit();
-    						}catch(Exception e){
-    							log.info(e.getMessage());
-    						}finally {
-    						    if (txn.isActive()) {
-    						        txn.rollback();
-    						    }
-    						}
-    						
-    						Thread.currentThread();
-    						Thread.sleep(1500);					
-
-    					}else if (rc==HttpURLConnection.HTTP_NO_CONTENT) {
-    						Thread.currentThread();
-    						Thread.sleep(1500);						
-    					} else
-    						log.info(String.format("%d: %s",rc,request.getResponseMessage()));
-    				}while ((rc==HttpURLConnection.HTTP_OK) || (rc==HttpURLConnection.HTTP_NO_CONTENT));
-
-    			}catch(Exception e){
-    				log.info(e.getMessage());
-    			}	
-    		}
-    	});
-    	
-    	threadBrasil.start();    
-    	threadUK.start();
-    	threadSpain.start();
-    	threadArgentina.start();
-    	threadMexico.start();
+    	  	
+    	threadPoller.start();
     }
 }

@@ -40,8 +40,8 @@ public class BlueViaServlet extends HttpServlet {
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		
-		String consumer_key = Util.getConsumerKey();
-		String consumer_secret=Util.getCosumerSecret();
+		String consumer_key = Util.getBvConsumerKey();
+		String consumer_secret=Util.getBvConsumerSecret();
 		
 		String access_key=(String)req.getSession().getAttribute("access_key");
 		String access_secret=(String) req.getSession().getAttribute("access_secret");		
@@ -56,11 +56,13 @@ public class BlueViaServlet extends HttpServlet {
 		   	apiConsumer.setMessageSigner(new HmacSha1MessageSigner());   
 		  	
 		   	try {
+		   	
 		   		String oAuthUrl= apiProvider.retrieveRequestToken(apiConsumer,"http://localhost:8888/bluevia/oauth-callback");
 				req.getSession().setAttribute("request_key", apiConsumer.getToken());
 				req.getSession().setAttribute("request_secret", apiConsumer.getTokenSecret());
 				resp.sendRedirect(oAuthUrl);
-			} catch (Exception e) {
+			
+		   	} catch (Exception e) {
 				e.printStackTrace();
 			}								    
 		} else{	
@@ -75,11 +77,12 @@ public class BlueViaServlet extends HttpServlet {
 	        blueviaUser.setProperty("mail", user.getEmail());
 	        blueviaUser.setProperty("alias",user.getNickname());
 	        blueviaUser.setProperty("date", date);
+	        blueviaUser.setProperty("Key", KeyFactory.keyToString(userKey));
+
 	        blueviaUser.setProperty("consumer_key", consumer_key);
 	        blueviaUser.setProperty("consumer_secret", consumer_secret);
 	        blueviaUser.setProperty("access_key", access_key);
 	        blueviaUser.setProperty("access_secret", access_secret);
-	        blueviaUser.setProperty("Key", KeyFactory.keyToString(userKey));
 
 	        DatastoreService datastore = Util.getDatastoreServiceInstance();
 	        
