@@ -16,6 +16,7 @@
 package bluevia;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -28,10 +29,13 @@ import oauth.signpost.basic.DefaultOAuthProvider;
 
 @SuppressWarnings("serial")
 public class OAuthCallbackServlet extends HttpServlet {
+	
+	private static final Logger log = Logger.getLogger(SMSPolling.class.getName());
+	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {			
 		
-		String consumer_key = Util.getConsumerKey();
-		String consumer_secret=Util.getCosumerSecret();
+		String consumer_key = Util.getBvConsumerKey();
+		String consumer_secret=Util.getBvConsumerSecret();
 		
 		String access_key = (String) req.getSession().getAttribute("access_key");
 		String access_secret=(String) req.getSession().getAttribute("access_secret");

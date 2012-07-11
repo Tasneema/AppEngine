@@ -72,7 +72,12 @@ public class SendSMS extends HttpServlet {
 					String consumer_key = (String) blueviaUser.getProperty("consumer_key");
 					String consumer_secret = (String) blueviaUser.getProperty("consumer_secret");
 					String access_key = (String) blueviaUser.getProperty("access_key");
-					String access_secret = (String) blueviaUser.getProperty("access_secret");	
+					String access_secret = (String) blueviaUser.getProperty("access_secret");
+					
+					log.info("Consumer_Key:"+consumer_key);
+					log.info("Consumer_Secret:"+consumer_secret);
+					log.info("Access_Key:"+access_key);
+					log.info("access_Secret:"+access_secret);
 					
 					com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
 					

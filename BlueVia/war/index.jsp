@@ -34,8 +34,9 @@
 <%@ page import="java.io.BufferedReader" %>
 <%@ page import="java.io.InputStreamReader" %>
 <%@ page import="bluevia.*" %>
+<%@ page import="bluevia.Util" %>
 <%@ page import="com.google.appengine.api.datastore.Query.SortDirection" %>
-   
+
 <html>
  <head>
    <style type="text/css">
@@ -68,37 +69,26 @@
   </head>
 <body>
 <%
-    String latitude="-4.700471";
-    String longitude="55.521759";   
+  String latitude="-4.700471";
+  String longitude="55.521759";   
 
-    User user=null;
-    List<Entity> results =null;
-    UserService userService = UserServiceFactory.getUserService();
-    user = userService.getCurrentUser();
-    Entity bvUser=null;
-    
-    if (user!=null){	
-        DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-        Query query = new Query("BlueViaUser");
-        query.addFilter("mail", Query.FilterOperator.EQUAL, user.getEmail());
-        results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());                  
-        if (!results.isEmpty()){
-        	bvUser = results.remove(0);
-        	latitude="";
-        	longitude="";
-        }else
-        	bvUser=null;
-   }
-%>
+  User user=null;
+  Entity bvUser=null;
+  
+  UserService userService = UserServiceFactory.getUserService();
+  user = userService.getCurrentUser();
+  if (user!=null)
+	  bvUser=Util.getUser(user.getEmail());
+%>   
  <div class="main">
     <img src="images/BV-728x90.png" style="width:100%;"/>
     <div>
-    <%if (user == null) {%>
+    <% if (user == null) {%>
         <div class="sign-up">
 	    <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a>
 	    </div>	  
 	    Welcome to Bluevia @ Google App Engine.<br>
-	    Sign up to start playing with BlueVia APIs	
+	    Sign up to start playing with BlueVia APIs	    	
     </div>     
     <% } else { %>        
         <div class="sign-up">
