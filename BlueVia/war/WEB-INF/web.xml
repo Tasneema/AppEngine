@@ -4,30 +4,6 @@ xmlns="http://java.sun.com/xml/ns/javaee"
 xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
 xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
 http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
-	<servlet>
-		<servlet-name>BlueVia</servlet-name>
-		<servlet-class>bluevia.BlueViaServlet</servlet-class>
-	</servlet>
-	<servlet-mapping>
-		<servlet-name>BlueVia</servlet-name>
-		<url-pattern>/bluevia</url-pattern>
-	</servlet-mapping>
-    <servlet>
-        <servlet-name>OAuthCallback</servlet-name>
-        <servlet-class>bluevia.OAuthCallbackServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>OAuthCallback</servlet-name>
-        <url-pattern>/bluevia/oauth-callback</url-pattern>
-    </servlet-mapping>	
-    <servlet>
-        <servlet-name>SendSMS</servlet-name>
-        <servlet-class>bluevia.SendSMS</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>SendSMS</servlet-name>
-        <url-pattern>/bluevia/send-sms</url-pattern>
-    </servlet-mapping>  
     <servlet>    
         <servlet-name>RemoveUser</servlet-name>
         <servlet-class>bluevia.RemoveUser</servlet-class>
@@ -35,6 +11,22 @@ http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
     <servlet-mapping>
         <servlet-name>RemoveUser</servlet-name>
         <url-pattern>/bluevia/remove-user</url-pattern>        
+    </servlet-mapping>  
+    <servlet>
+        <servlet-name>OAuth</servlet-name>
+        <servlet-class>bluevia.OAuth</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>OAuth</servlet-name>
+        <url-pattern>/oauth</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>SendSMS</servlet-name>
+        <servlet-class>bluevia.SendSMS</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SendSMS</servlet-name>
+        <url-pattern>/bluevia/send-sms</url-pattern>
     </servlet-mapping>  
      <servlet>    
         <servlet-name>SMSPolling</servlet-name>

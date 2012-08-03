@@ -13,6 +13,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
+
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="com.google.appengine.api.users.User" %>
 <%@ page import="com.google.appengine.api.users.UserService" %>
@@ -36,9 +37,10 @@
 <%@ page import="bluevia.*" %>
 <%@ page import="bluevia.Util" %>
 <%@ page import="com.google.appengine.api.datastore.Query.SortDirection" %>
-
+<!DOCTYPE html>
 <html>
  <head>
+   <title>BlueVia App Engine demo</title>
    <style type="text/css">
        body{
     min-width: 810px;
@@ -69,9 +71,6 @@
   </head>
 <body>
 <%
-  String latitude="-4.700471";
-  String longitude="55.521759";   
-
   User user=null;
   Entity bvUser=null;
   
@@ -90,7 +89,10 @@
 	    Welcome to Bluevia @ Google App Engine.<br>
 	    Sign up to start playing with BlueVia APIs	    	
     </div>     
-    <% } else { %>        
+    <% } else { %>  
+        <% if (bvUser==null){
+        	response.sendRedirect("/initialize.jsp?user="+user.getNickname());        
+        } %>      
         <div class="sign-up">
         <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">Sign out</a>
         </div>
@@ -99,68 +101,52 @@
         <%} %>    
         Hello, <%=user.getNickname() %><br>
         Welcome to Bluevia @ Google App Engine.<br>
+        <table>
+           <tr>
+             <td>
+             <div class="user_info" style="width:300px;">
+                 <h3>Personal Profile</h3>
+                 <table><tr> <td>Nickname:</td><td><%=user.getNickname() %></td></tr>
+                        <tr> <td>Mail Address:</td><td><%= user.getEmail()%></td></tr>
+                 </table>                                                                                          
+             </div>
+             </td>
+             <td rowspan="2" style="vertical-align:top;">
+               <div class="user_info" style="width:440px;height:400px;">
+               <h3><%=user.getNickname() %>'s Messages</h3>
+               <%
+                   List<Entity> msgList = Util.getUserMessages();
+                   if(msgList!=null){
+                	   if (msgList.size()>0){
+		                   for (Entity msgItem : msgList) {
+		               %> 
+		                   Date: <%= msgItem.getProperty("Date") %><br>
+		                   Sender: <%= msgItem.getProperty("Sender") %><br>
+		                   Message:<%= msgItem.getProperty("Message") %><br>
+		                   <hr>
+		                <% }
+                	   }
+                   }               
+               %>
+               </div>
+               </td>
+           </tr>
+           <tr>
+               <td>  
+                 <div class="user_info" style="width:300px;">
+                 <h3>SMS Service</h3>
+                 <form action="/bluevia/send-sms" method="post">
+                 Contact:<br />
+                 <textarea name="phone-number" rows="1" cols="30"></textarea><br />
+                 Text:<br />
+                 <textarea name="sms-message" rows="3" cols="30"></textarea><br />
+                 <input type="submit" value="Send SMS" />   
+                 </form>
+                 </div>
+               </td>
+           </tr>            
+         </table>                                                    
     </div>
-        <% if (bvUser==null){%>
-            Before to start, you should authorize. Just click <a href="/bluevia">here</a>.        
-        <% } else { %>
-                    <table>
-            <tr><td>
-                <div class="user_info" style="width:300px;">
-                    <h3>Personal Profile</h3>
-                    <table><tr> <td>Nickname:</td><td><%=user.getNickname() %></td></tr>
-                           <tr> <td>Mail Address:</td><td><%= user.getEmail()%></td></tr>
-                    </table>
-                                                                                                     
-                </div>
-                </td>
-                <td rowspan="2" style="vertical-align:top;">
-                  <div class="user_info" style="width:440px;height:400px;">
-                  <h3><%=user.getNickname() %>'s Messages</h3>
-                  <%
-                  DatastoreService datastore = Util.getDatastoreServiceInstance();
-                  Query query = new Query("BlueViaUser");
-                  query.addFilter("mail", Query.FilterOperator.EQUAL, user.getEmail());
-                  List<Entity> userQuery = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-                  if (!userQuery.isEmpty()){
-                      Entity currentUser = userQuery.remove(0);
-                      Key userKey = currentUser.getKey();
-                      
-                      Query msgQuery= new Query();
-                      msgQuery.setAncestor(userKey);
-                      msgQuery.addFilter(Entity.KEY_RESERVED_PROPERTY,Query.FilterOperator.GREATER_THAN,userKey);
-                                            
-                      List<Entity> msgList = datastore.prepare(msgQuery).asList(FetchOptions.Builder.withLimit(5));
-                      
-                      for (Entity msgItem : msgList) {
-                %> 
-                      Date: <%= msgItem.getProperty("Date") %><br>
-                      Sender: <%= msgItem.getProperty("Sender") %><br>
-                      Message:<%= msgItem.getProperty("Message") %><br>
-                      <hr>
-                   <% }
-                  }
-                  %>
-                  </div>
-                  </td>
-                  </tr>
-              <tr>
-                <td>  
-                    <div class="user_info" style="width:300px;">
-                    <h3>SMS Service</h3>
-                    <form action="/bluevia/send-sms" method="post">
-                    Contact:<br />
-                    <textarea name="phone-number" rows="1" cols="30"></textarea><br />
-                    Text:<br />
-                    <textarea name="sms-message" rows="3" cols="30"></textarea><br />
-                    <input type="submit" value="Send SMS" />   
-                    </form>
-                    </div>
-                </td>
-            </tr>            
-            </table>     
-                                
-       <% } %>               
-    <% } %>    
-  </div>  
+    <% } %>  
 </body>
 </html>

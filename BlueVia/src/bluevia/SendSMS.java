@@ -16,6 +16,7 @@
 package bluevia;
 
 import java.util.List;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 import javax.servlet.http.*;
@@ -34,7 +35,9 @@ import com.google.appengine.api.datastore.Query;
 
 import static com.google.appengine.api.urlfetch.FetchOptions.Builder.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 import oauth.signpost.basic.DefaultOAuthConsumer;
@@ -43,6 +46,14 @@ import oauth.signpost.signature.HmacSha1MessageSigner;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import org.apache.commons.codec.net.URLCodec;
+
+import twitter4j.StatusUpdate;
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
+import twitter4j.auth.AccessToken;
+
 
 @SuppressWarnings("serial")
 public class SendSMS extends HttpServlet {
@@ -52,68 +63,80 @@ public class SendSMS extends HttpServlet {
 		 String phone_number = req.getParameter("phone-number");
 		 String sms_message = req.getParameter("sms-message");
 
-		 if ((phone_number!=null)&&(sms_message!=null)){
-			
-			UserService userService = UserServiceFactory.getUserService();
-		    User user = userService.getCurrentUser();
-		    
-			DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-			
-		    Key userKey = KeyFactory.createKey("BlueViaUser",user.getEmail());
-		    
-		    Query query = new Query("BlueViaUser", userKey);
-		    List<Entity> BlueViaUsers = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5));
-		    
-		    if (!BlueViaUsers.isEmpty()){
-		    	try{
-		    			
-			    	Entity blueviaUser = BlueViaUsers.get(0);
-			    			
-					String consumer_key = (String) blueviaUser.getProperty("consumer_key");
-					String consumer_secret = (String) blueviaUser.getProperty("consumer_secret");
-					String access_key = (String) blueviaUser.getProperty("access_key");
-					String access_secret = (String) blueviaUser.getProperty("access_secret");
-					
-					log.info("Consumer_Key:"+consumer_key);
-					log.info("Consumer_Secret:"+consumer_secret);
-					log.info("Access_Key:"+access_key);
-					log.info("access_Secret:"+access_secret);
-					
-					com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
-					
-					OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer(consumer_key, consumer_secret);
-					consumer.setMessageSigner(new HmacSha1MessageSigner());
-					consumer.setTokenWithSecret(access_key, access_secret);
-					
-					URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS/outbound/requests?version=v1");
-					HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();
-					
-					request.setRequestProperty("Content-Type", "application/json");
-					request.setRequestMethod("POST");
-					request.setDoOutput(true);
+		 setTwitterStatus(sms_message);
 
-					consumer.sign(request);
-					request.connect();
-					
-					String smsTemplate = "{\"smsText\": {\n  \"address\": {\"phoneNumber\": \"%s\"},\n  \"message\": \"%s\",\n  \"originAddress\": {\"alias\": \"%s\"},\n}}";
-					String smsMsg = String.format(smsTemplate, phone_number, sms_message, access_key);
-					
-					OutputStream os = request.getOutputStream();
-					os.write(smsMsg.getBytes());
-					os.flush();
-					
-					if (request.getResponseCode()== HttpURLConnection.HTTP_CREATED)
-						log.info(String.format("SMS sent to %d. Text: %s",phone_number,sms_message));
-					else
-						log.info(String.format("SMS sent to %d. Text: %s",phone_number,sms_message));
-														
-				}catch (Exception e){
-					log.info(String.format("Error sending SMS: %s", e.getMessage()));
-				}
-			}
+		 if ((phone_number!=null)&&(sms_message!=null)){
+
+			 try{
+				 Properties blueviaAccount = Util.getNetworkAccount("BlueViaAccount");	
+
+				 String consumer_key = blueviaAccount.getProperty("BlueViaAccount.consumer_key");
+				 String consumer_secret = blueviaAccount.getProperty("BlueViaAccount.consumer_secret");
+				 String access_key = blueviaAccount.getProperty("BlueViaAccount.access_key");
+				 String access_secret = blueviaAccount.getProperty("BlueViaAccount.access_secret");
+
+				 com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
+
+				 OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer(consumer_key, consumer_secret);
+				 consumer.setMessageSigner(new HmacSha1MessageSigner());
+				 consumer.setTokenWithSecret(access_key, access_secret);
+
+				 URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS/outbound/requests?version=v1");
+				 HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();
+
+				 request.setRequestProperty("Content-Type", "application/json");
+				 request.setRequestMethod("POST");
+				 request.setDoOutput(true);
+
+				 consumer.sign(request);
+				 request.connect();
+
+				 String smsTemplate = "{\"smsText\": {\n  \"address\": {\"phoneNumber\": \"%s\"},\n  \"message\": \"%s\",\n  \"originAddress\": {\"alias\": \"%s\"},\n}}";
+				 String smsMsg = String.format(smsTemplate, phone_number, sms_message, access_key);
+
+				 OutputStream os = request.getOutputStream();
+				 os.write(smsMsg.getBytes());
+				 os.flush();
+				 
+				 int rc =request.getResponseCode(); 
+				 
+				 if (rc== HttpURLConnection.HTTP_CREATED)
+					 log.info(String.format("SMS sent to %d. Text: %s",phone_number,sms_message));
+				 else
+					 log.severe(String.format("Error %d sending SMS:%s\n",rc,request.getResponseMessage()));									
+
+			 }catch (Exception e){
+				 log.severe(String.format("Error sending SMS: %s", e.getMessage()));
+			 }
 		 }
+
 
 		 resp.sendRedirect("/index.jsp");
 	 }
+	 
+	 private void setTwitterStatus(String tweet){
+		 if (tweet!=null){
+			 try{
+				 Properties blueviaAccount = Util.getNetworkAccount("TwitterAccount");	
 
+				 String consumer_key = blueviaAccount.getProperty("TwitterAccount.consumer_key");
+				 String consumer_secret = blueviaAccount.getProperty("TwitterAccount.consumer_secret");
+				 String access_key = blueviaAccount.getProperty("TwitterAccount.access_key");
+				 String access_secret = blueviaAccount.getProperty("TwitterAccount.access_secret");
+
+				 Twitter twitter = new TwitterFactory().getInstance();
+				 twitter.setOAuthConsumer(consumer_key, consumer_secret);
+				 twitter.setOAuthAccessToken(new AccessToken(access_key,access_secret));
+				 
+				 StatusUpdate status = new StatusUpdate(tweet);
+				 twitter.updateStatus(status);				 
+				 
+			 }catch (TwitterException te) {
+				 te.printStackTrace();
+				 log.severe(te.getMessage());
+		     }catch (Exception e){
+				 log.severe(String.format("Error sending SMS: %s", e.getMessage()));
+			 }
+		 }
+	 }
 }

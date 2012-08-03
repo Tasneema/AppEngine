@@ -53,7 +53,8 @@ import bluevia.*;
 @SuppressWarnings("serial")
 public class SMSPolling extends HttpServlet {
 	
-	private static final Logger log = Logger.getLogger(SMSPolling.class.getName());
+	private static final Logger logger = Logger.getLogger(SMSPolling.class.getName());
+	
 	private static final String MO_URI_UK = "https://api.bluevia.com/services/REST/SMS/inbound/445480605/messages?version=v1&alt=json";
 	private static final String MO_URI_SP = "https://api.bluevia.com/services/REST/SMS/inbound/34217040/messages?version=v1&alt=json";
 	private static final String MO_URI_GE = "https://api.bluevia.com/services/REST/SMS/inbound/493000/messages?version=v1&alt=json";
@@ -63,12 +64,13 @@ public class SMSPolling extends HttpServlet {
 	private static final String MO_URI_CH = "https://api.bluevia.com/services/REST/SMS/inbound/5698765/messages?version=v1&alt=json";
 	private static final String MO_URI_CO = "https://api.bluevia.com/services/REST/SMS/inbound/572505/messages?version=v1&alt=json";
 		 
+	
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
     	Thread threadPoller = ThreadManager.createBackgroundThread(new Runnable() {
     		public void run() {
-    			String consumer_key = Util.getBvConsumerKey();
-    			String consumer_secret = Util.getBvConsumerSecret();
+    			String consumer_key = Util.BlueViaOAuth.consumer_key;
+    			String consumer_secret = Util.BlueViaOAuth.consumer_secret;
     			BufferedReader br =null;
     			int countryIndex=0;
     			String [] countryURIs ={MO_URI_UK,MO_URI_SP,MO_URI_GE,MO_URI_BR,MO_URI_MX, MO_URI_AR,MO_URI_CH,MO_URI_CO};
@@ -126,54 +128,47 @@ public class SMSPolling extends HttpServlet {
 			    						
 		    							// Removing app id
 		    							msgParser.nextToken();
+		    							
 		    							String userAlias = msgParser.nextToken();
 		    							
 		    							String msg = "";
 		    							while (msgParser.hasMoreTokens())
 		    								msg += " "+ msgParser.nextToken();    						    					    	
 
-		    							Query query = new Query("BlueViaUser");
-		    					    	query.addFilter("alias", Query.FilterOperator.EQUAL, userAlias);
-		    					    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-		    					    	if (!results.isEmpty()){
-										    Entity bvUser = results.remove(0);
-										    Key userKey = bvUser.getKey();
-										    
-										    Entity userMsg = new Entity("Message", userKey);
-										    userMsg.setProperty("Sender", szOrigin);
-										    userMsg.setProperty("Message", msg);
-										    userMsg.setProperty("Date", szDate);
-									    	
-										    datastore.put(userMsg);								    
-		    					    	}
-		    						    txn.commit();					    					            	
+		    							Util.addUserMessage(userAlias, szOrigin, szMessage, szDate);		    							
 					            	}
 					            }else{
-					            	log.warning("No messages");
+					            	logger.warning("No messages");
 					            	if (txn.isActive())
 	    						        txn.rollback();
 					            }
     						    
     						}catch (JSONException e){
-    							log.severe(e.getMessage());
+    							logger.severe(e.getMessage());
     						}catch(Exception e){
-    							log.severe(e.getMessage());
+    							logger.severe(e.getMessage());
     						}finally {
     						    if (txn.isActive())
     						        txn.rollback();    						
     						}
     							    				
     					}else if (rc==HttpURLConnection.HTTP_NO_CONTENT) {
-    						log.warning(String.format("No content from: %s", apiURI.getPath()));
+    						//log.warning(String.format("No content from: %s", apiURI.getPath()));
     					} else
-    						log.severe(String.format("%d: %s",rc,request.getResponseMessage()));
+    						logger.severe(String.format("%d: %s",rc,request.getResponseMessage()));    					    							
     				
-	    				Thread.currentThread();
-    					Thread.sleep(5000);					
-
 	    			}catch(Exception e){
-	    				log.severe(e.getMessage());
-	    			}		    			
+	    				logger.severe(e.getMessage());
+	    			}
+	    			
+	    			Thread.currentThread();
+					try {
+						Thread.sleep(15000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						logger.severe(String.format("%s",e.getMessage()));
+					}		    			
     		    }
     		}
     	});
