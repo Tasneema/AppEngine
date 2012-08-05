@@ -25,6 +25,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.appengine.api.users.User;
+import com.google.appengine.api.users.UserService;
+import com.google.appengine.api.users.UserServiceFactory;
+
 import bluevia.Util.BlueViaOAuth;
 import bluevia.Util.TwitterOAuth;
 
@@ -105,10 +109,13 @@ public class OAuth extends HttpServlet {
 				// end bug fix
 				
 				apiProvider.retrieveAccessToken(apiConsumer, oauth_verifier);
+				
+				 UserService userService = UserServiceFactory.getUserService();
+				 User user = userService.getCurrentUser();
 
-				Util.setNetworkAccount("BlueViaAccount",
-						Util.TwitterOAuth.consumer_key,
-						Util.TwitterOAuth.consumer_secret,
+				Util.addNetworkAccount(user.getEmail(),"BlueViaAccount",
+						BlueViaOAuth.consumer_key,
+						BlueViaOAuth.consumer_secret,
 						apiConsumer.getToken(),
 						apiConsumer.getTokenSecret());
 
@@ -154,8 +161,11 @@ public class OAuth extends HttpServlet {
 				
 				RequestToken requestToken = new RequestToken(request_key,request_secret);
 				AccessToken accessToken = twitter.getOAuthAccessToken(requestToken,oauth_verifier);
-				
-				Util.setNetworkAccount("TwitterAccount",
+				 
+				UserService userService = UserServiceFactory.getUserService();
+				User user = userService.getCurrentUser();
+				 
+				Util.addNetworkAccount(user.getEmail(),"TwitterAccount",
 						Util.TwitterOAuth.consumer_key,
 						Util.TwitterOAuth.consumer_secret,
 						accessToken.getToken(),

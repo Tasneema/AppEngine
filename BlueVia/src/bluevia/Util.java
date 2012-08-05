@@ -15,112 +15,134 @@
 */
 package bluevia;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import java.util.logging.Logger;
 
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Transaction;
-import com.google.appengine.api.users.User;
-import com.google.appengine.api.users.UserService;
-import com.google.appengine.api.users.UserServiceFactory;
-
+import com.google.appengine.api.datastore.Query.FilterPredicate;
 
 public class Util {
-	private static final Logger logger = Logger.getLogger(Util.class.getCanonicalName());
 	private static DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 	
 	public static DatastoreService getDatastoreServiceInstance(){
 		  return datastore;
 	}
 	
-	public static void addUser(){
-		UserService userService = UserServiceFactory.getUserService();
-	    User user = userService.getCurrentUser();
+	public static void addUser(String userMail, String userAlias, long date){
 	    
 	    DatastoreService datastore = Util.getDatastoreServiceInstance();
 	    Transaction txn = datastore.beginTransaction();
 	    
-		Date date = new Date();
-		
-        Entity blueviaUser = new Entity("BlueViaUser");
-        blueviaUser.setProperty("mail", user.getEmail());
-        blueviaUser.setProperty("alias",user.getNickname());
-        blueviaUser.setProperty("date", date);
-        //FIXME 
-        //blueviaUser.setProperty("phone", szPhoneNumber)
+	    Entity user =null;
+	    
+	    Query query = new Query("BlueViaUser");
+    	query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
+    	
+    	user = datastore.prepare(query).asSingleEntity();
+    	if (user==null){
+    				
+    		Entity blueviaUser = new Entity("BlueViaUser");
+    		blueviaUser.setProperty("mail", userMail);
+    		blueviaUser.setProperty("alias",userAlias);
+    		blueviaUser.setProperty("date", date);
                
-        datastore.put(blueviaUser);
-        
+    		datastore.put(blueviaUser);    		    		
+    	}    
+    	
         txn.commit();
 	};
 	
+	public static void deleteUser(String userMail){
+		
+		DatastoreService datastore = Util.getDatastoreServiceInstance();
+    	Transaction txn = datastore.beginTransaction();
+		 	
+    	Query query = new Query("BlueViaUser");
+    	query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
+    	Entity user= datastore.prepare(query).asSingleEntity();
+    	
+    	if (user!=null){
+    		//Removing Networks Accounts 
+    		deleteNetworkAccount(userMail,TwitterOAuth.networkID);
+    		deleteNetworkAccount(userMail,BlueViaOAuth.networkID);
+    		deleteNetworkAccount(userMail,FaceBookOAuth.networkID);
+    		
+    		// Removing Messages
+    		Query msgQuery= new Query();
+            
+    		msgQuery.setAncestor(user.getKey());
+            msgQuery.setKeysOnly();
+
+            msgQuery.setFilter(new FilterPredicate(Entity.KEY_RESERVED_PROPERTY,Query.FilterOperator.GREATER_THAN,user.getKey()));
+                                  
+            Iterable<Entity> msgList = datastore.prepare(msgQuery).asIterable(FetchOptions.Builder.withDefaults());
+            for (Entity e: msgList)
+            	datastore.delete(e.getKey());	
+            
+    		datastore.delete(user.getKey());
+    	}
+    	txn.commit();
+	}
+	
 	public static Entity getUser(String userMail){
-		Entity bvUser=null;	    
-	    List<Entity> results =null;
 	    
 	    DatastoreService datastore = Util.getDatastoreServiceInstance();
 	    Query query = new Query("BlueViaUser");
-	    query.addFilter("mail", Query.FilterOperator.EQUAL, userMail);
+	    query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
 	    
-	    results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());                  
-	    if (!results.isEmpty())
-	      bvUser = results.remove(0);	        
-	   
-	    return bvUser;
+	    return datastore.prepare(query).asSingleEntity();
 	};
 	
 	public static void addUserMessage(String userMail, String szSender, String szMessage, String szDate){
 		
 		DatastoreService datastore = Util.getDatastoreServiceInstance();
-    	Transaction txn = datastore.beginTransaction();
-    	
+		Transaction txn = datastore.beginTransaction();
+		
     	Query query = new Query("BlueViaUser");
-    	query.addFilter("mail", Query.FilterOperator.EQUAL, userMail);
+    	query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
     	
-    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-    	if (!results.isEmpty()){
-		    Entity bvUser = results.remove(0);
-		    Key userKey = bvUser.getKey();
+    	Entity user = datastore.prepare(query).asSingleEntity();
+    	
+    	if (user!=null){
+    			    
+		    Key userKey = user.getKey();
 		    
 		    Entity userMsg = new Entity("Message", userKey);
 		    userMsg.setProperty("Sender", szSender);
 		    userMsg.setProperty("Message", szMessage);
 		    userMsg.setProperty("Date", szDate);
 	    	
-		    datastore.put(userMsg);	
-		    
+		    datastore.put(userMsg);			
     	}
     	txn.commit();
 	}
 	
-	public static List<Entity> getUserMessages(){
+	// IMPORTANT: if you query messages for non existing user, you got null
+	//            but if you query messages for an existing user with no messages
+	//            you get empty list
+	public static List<Entity> getUserMessages(String userMail){
 		
 		List<Entity> msgList=null;
-		
-		UserService userService = UserServiceFactory.getUserService();
-	    User user = userService.getCurrentUser();
-		
+				
 		DatastoreService datastore = Util.getDatastoreServiceInstance();
         
 		Query query = new Query("BlueViaUser");
-        query.addFilter("mail", Query.FilterOperator.EQUAL, user.getEmail());
+        query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
         
-        List<Entity> userQuery = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-        if (!userQuery.isEmpty()){
-            Entity currentUser = userQuery.remove(0);
-            Key userKey = currentUser.getKey();
+        Entity user = datastore.prepare(query).asSingleEntity();
+        
+        if (user!=null){
+            Key userKey = user.getKey();
             
             Query msgQuery= new Query();
             msgQuery.setAncestor(userKey);
-            msgQuery.addFilter(Entity.KEY_RESERVED_PROPERTY,Query.FilterOperator.GREATER_THAN,userKey);
+            msgQuery.setFilter(new FilterPredicate(Entity.KEY_RESERVED_PROPERTY,Query.FilterOperator.GREATER_THAN,userKey));
                                   
             msgList = datastore.prepare(msgQuery).asList(FetchOptions.Builder.withLimit(5));
         }
@@ -128,21 +150,18 @@ public class Util {
 		return msgList;
 	}
 	
-	public static void setNetworkAccount(String network,String consumer_key, String consumer_secret, String access_key, String access_secret){
-		
-		UserService userService = UserServiceFactory.getUserService();
-	    User user = userService.getCurrentUser();
-		
+	public static void addNetworkAccount(String userMail, String network,String consumer_key, String consumer_secret, String access_key, String access_secret){
+				
 		DatastoreService datastore = Util.getDatastoreServiceInstance();
     	Transaction txn = datastore.beginTransaction();
     	
 		Query query = new Query("BlueViaUser");
-    	query.addFilter("mail", Query.FilterOperator.EQUAL, user.getEmail());
+    	query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
     	
-    	List<Entity> results = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
-    	if (!results.isEmpty()){
-		    Entity bvUser = results.remove(0);
-		    Key userKey = bvUser.getKey();
+    	Entity user = datastore.prepare(query).asSingleEntity();
+    	 	
+    	if (user!=null){		    
+		    Key userKey = user.getKey();
 		    
 		    Entity networkAccount = new Entity(network, userKey);
 		    networkAccount.setProperty("consumer_key", consumer_key);
@@ -155,31 +174,27 @@ public class Util {
 	    txn.commit();					    					            	
 	}
 	
-	public static Properties getNetworkAccount(String network){
+	public static Properties getNetworkAccount(String userMail, String network){
 		
-		Properties networkAccount = new Properties();
-		
-		UserService userService = UserServiceFactory.getUserService();
-	    User user = userService.getCurrentUser();
-        
+		Properties networkAccount = null;
+		        
 	    DatastoreService datastore = getDatastoreServiceInstance();
-	    Transaction txn = datastore.beginTransaction();
 	    
         Query userQuery = new Query("BlueViaUser");
-        userQuery.addFilter("mail", Query.FilterOperator.EQUAL, user.getEmail());
+        userQuery.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
         
-        List<Entity> usersList = datastore.prepare(userQuery).asList(FetchOptions.Builder.withDefaults());
+        Entity user = datastore.prepare(userQuery).asSingleEntity();
         
-        if (!usersList.isEmpty()){
-            Entity currentUser = usersList.remove(0);
-            Key userKey = currentUser.getKey();
+        if (user!=null){            
+            Key userKey = user.getKey();
             
             Query networkQuery= new Query(network);
             networkQuery.setAncestor(userKey);
-                                              
-            List<Entity> networkList = datastore.prepare(networkQuery).asList(FetchOptions.Builder.withLimit(5));
-            if (!networkList.isEmpty()){
-            	Entity networkInstance = networkList.remove(0);
+            
+            Entity networkInstance = datastore.prepare(networkQuery).asSingleEntity();
+            
+            if (networkInstance!=null){
+            	networkAccount = new Properties();
             	networkAccount.setProperty(network+".consumer_key",(String)networkInstance.getProperty("consumer_key"));
             	networkAccount.setProperty(network+".consumer_secret",(String)networkInstance.getProperty("consumer_secret"));
             	networkAccount.setProperty(network+".access_key",(String)networkInstance.getProperty("access_key"));
@@ -187,12 +202,36 @@ public class Util {
             }
         }
         
-        txn.commit();
-        
 		return networkAccount;
 	}
-	
+
+	public static void deleteNetworkAccount(String userMail, String network){
+		
+	    DatastoreService datastore = getDatastoreServiceInstance();
+	    Transaction txn = datastore.beginTransaction();
+	    
+        Query userQuery = new Query("BlueViaUser");
+        userQuery.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
+        
+        Entity user = datastore.prepare(userQuery).asSingleEntity();
+        
+        if (user!=null){
+            
+            Key userKey = user.getKey();
+            
+            Query networkQuery= new Query(network);
+            networkQuery.setAncestor(userKey);
+                        
+            Entity networkAccount = datastore.prepare(networkQuery).asSingleEntity();
+            
+            if (networkAccount!=null)            	          
+            	datastore.delete(networkAccount.getKey());            	            
+        }
+        txn.commit();            	
+	}
+            
 	public static class TwitterOAuth{
+		final public static String networkID = "TwitterAccount";
 		final public static String consumer_key="LWjzycvPAAqWrkRJNWGvA";
 		final public static String consumer_secret="qEprN6eVBh1JNJSTDOCjHnFaMpL6MUkMxZ1RVK4sQ";
 		final public static String url_request_token="https://api.twitter.com/oauth/request_token";
@@ -201,10 +240,15 @@ public class Util {
 	}	
 	
 	public static class BlueViaOAuth{
+		final public static String networkID = "BlueViaAccount";
 		final public static String consumer_key="vD12072833882323";
 		final public static String consumer_secret="XTla79065935";
 		final public static String url_request_token="https://api.bluevia.com/services/REST/Oauth/getRequestToken/";
 		final public static String url_authorize="https://connect.bluevia.com/authorise/";
 		final public static String url_access_token="https://api.bluevia.com/services/REST/Oauth/getAccessToken/";
 	}	
+	
+	public static class FaceBookOAuth{
+		final public static String networkID = "FaceBookAccount";
+	}
 }

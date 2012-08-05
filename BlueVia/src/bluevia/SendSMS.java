@@ -15,29 +15,16 @@
 */
 package bluevia;
 
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 import javax.servlet.http.*;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
 import com.google.appengine.api.users.UserServiceFactory;
 
-import com.google.appengine.api.datastore.DatastoreService;
-import com.google.appengine.api.datastore.DatastoreServiceFactory;
-import com.google.appengine.api.datastore.Entity;
-import com.google.appengine.api.datastore.FetchOptions;
-import com.google.appengine.api.datastore.Query;
-
-import static com.google.appengine.api.urlfetch.FetchOptions.Builder.*;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 import oauth.signpost.basic.DefaultOAuthConsumer;
@@ -46,7 +33,6 @@ import oauth.signpost.signature.HmacSha1MessageSigner;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
-import org.apache.commons.codec.net.URLCodec;
 
 import twitter4j.StatusUpdate;
 import twitter4j.Twitter;
@@ -68,7 +54,10 @@ public class SendSMS extends HttpServlet {
 		 if ((phone_number!=null)&&(sms_message!=null)){
 
 			 try{
-				 Properties blueviaAccount = Util.getNetworkAccount("BlueViaAccount");	
+				 UserService userService = UserServiceFactory.getUserService();
+				 User user = userService.getCurrentUser();
+				 
+				 Properties blueviaAccount = Util.getNetworkAccount(user.getEmail(),"BlueViaAccount");	
 
 				 String consumer_key = blueviaAccount.getProperty("BlueViaAccount.consumer_key");
 				 String consumer_secret = blueviaAccount.getProperty("BlueViaAccount.consumer_secret");
@@ -100,13 +89,13 @@ public class SendSMS extends HttpServlet {
 				 
 				 int rc =request.getResponseCode(); 
 				 
-				 if (rc== HttpURLConnection.HTTP_CREATED)
-					 log.info(String.format("SMS sent to %d. Text: %s",phone_number,sms_message));
+				 if (rc==HttpURLConnection.HTTP_CREATED)
+					 log.info(String.format("SMS sent to %s. Text: %s",phone_number,sms_message));
 				 else
 					 log.severe(String.format("Error %d sending SMS:%s\n",rc,request.getResponseMessage()));									
 
 			 }catch (Exception e){
-				 log.severe(String.format("Error sending SMS: %s", e.getMessage()));
+				 log.severe(String.format("Exception sending SMS: %s", e.getMessage()));
 			 }
 		 }
 
@@ -117,7 +106,10 @@ public class SendSMS extends HttpServlet {
 	 private void setTwitterStatus(String tweet){
 		 if (tweet!=null){
 			 try{
-				 Properties blueviaAccount = Util.getNetworkAccount("TwitterAccount");	
+				 UserService userService = UserServiceFactory.getUserService();
+				 User user = userService.getCurrentUser();
+				 
+				 Properties blueviaAccount = Util.getNetworkAccount(user.getEmail(),"TwitterAccount");	
 
 				 String consumer_key = blueviaAccount.getProperty("TwitterAccount.consumer_key");
 				 String consumer_secret = blueviaAccount.getProperty("TwitterAccount.consumer_secret");

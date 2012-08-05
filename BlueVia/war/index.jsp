@@ -115,17 +115,16 @@
                <div class="user_info" style="width:440px;height:400px;">
                <h3><%=user.getNickname() %>'s Messages</h3>
                <%
-                   List<Entity> msgList = Util.getUserMessages();
+                   List<Entity> msgList = Util.getUserMessages(user.getEmail());
                    if(msgList!=null){
-                	   if (msgList.size()>0){
-		                   for (Entity msgItem : msgList) {
+                	   
+		                 for (Entity msgItem : msgList) {
 		               %> 
 		                   Date: <%= msgItem.getProperty("Date") %><br>
 		                   Sender: <%= msgItem.getProperty("Sender") %><br>
 		                   Message:<%= msgItem.getProperty("Message") %><br>
 		                   <hr>
-		                <% }
-                	   }
+		              <% }   
                    }               
                %>
                </div>
