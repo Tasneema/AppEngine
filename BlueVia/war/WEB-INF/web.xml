@@ -27,7 +27,15 @@ http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
     <servlet-mapping>
         <servlet-name>SendSMS</servlet-name>
         <url-pattern>/bluevia/send-sms</url-pattern>
-    </servlet-mapping>  
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>Test</servlet-name>
+        <servlet-class>bluevia.Test</servlet-class>
+    </servlet>  
+    <servlet-mapping>
+        <servlet-name>Test</servlet-name>
+        <url-pattern>/test</url-pattern>
+    </servlet-mapping>
      <servlet>    
         <servlet-name>SMSPolling</servlet-name>
         <servlet-class>bluevia.SMSPolling</servlet-class>

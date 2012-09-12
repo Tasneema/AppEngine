@@ -17,6 +17,7 @@
 <%@ page import="com.google.appengine.api.users.User" %>
 <%@ page import="com.google.appengine.api.users.UserService" %>
 <%@ page import="com.google.appengine.api.users.UserServiceFactory" %>
+<%@ page import="java.util.Date" %>
 <%@ page import="bluevia.Util" %>
 
 <!DOCTYPE html>
@@ -29,8 +30,10 @@
   UserService userService = UserServiceFactory.getUserService();
   User user = userService.getCurrentUser();
   
-  if (Util.getUser(user.getEmail())==null)
-	  Util.addUser();
+  if (Util.getUser(user.getEmail())==null){
+	  Date date = new Date();
+	  Util.addUser(user.getEmail(),user.getNickname(),date.getTime());
+  }
   %>
   <div>
     <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">Sign out</a>

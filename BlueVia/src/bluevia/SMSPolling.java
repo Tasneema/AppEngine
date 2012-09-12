@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.List;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
@@ -38,17 +37,8 @@ import oauth.signpost.signature.HmacSha1MessageSigner;
 
 import com.google.appengine.api.ThreadManager;
 import com.google.appengine.api.datastore.DatastoreService;
-import com.google.appengine.api.datastore.DatastoreServiceFactory;
-import com.google.appengine.api.datastore.Entity;
-import com.google.appengine.api.datastore.FetchOptions;
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Transaction;
-import com.google.appengine.api.users.User;
-import com.google.appengine.api.users.UserService;
-import com.google.appengine.api.users.UserServiceFactory;
-import bluevia.*;
+
 
 @SuppressWarnings("serial")
 public class SMSPolling extends HttpServlet {
@@ -135,7 +125,7 @@ public class SMSPolling extends HttpServlet {
 		    							while (msgParser.hasMoreTokens())
 		    								msg += " "+ msgParser.nextToken();    						    					    	
 
-		    							Util.addUserMessage(userAlias, szOrigin, szMessage, szDate);		    							
+		    							Util.addUserMessage(userAlias, szOrigin, msg, szDate);		    							
 					            	}
 					            }else{
 					            	logger.warning("No messages");
@@ -164,8 +154,7 @@ public class SMSPolling extends HttpServlet {
 	    			Thread.currentThread();
 					try {
 						Thread.sleep(15000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
+					} catch (InterruptedException e) {						
 						e.printStackTrace();
 						logger.severe(String.format("%s",e.getMessage()));
 					}		    			
