@@ -77,21 +77,21 @@
   UserService userService = UserServiceFactory.getUserService();
   user = userService.getCurrentUser();
   if (user!=null)
-	  bvUser=Util.getUser(user.getEmail());
+    bvUser=Util.getUser(user.getEmail());
 %>   
  <div class="main">
     <img src="images/BV-728x90.png" style="width:100%;"/>
     <div>
     <% if (user == null) {%>
         <div class="sign-up">
-	    <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a>
-	    </div>	  
-	    Welcome to Bluevia @ Google App Engine.<br>
-	    Sign up to start playing with BlueVia APIs	    	
+      <a href="<%= userService.createLoginURL(request.getRequestURI()) %>">Sign in</a>
+      </div>    
+      Welcome to Bluevia @ Google App Engine.<br>
+      Sign up to start playing with BlueVia APIs        
     </div>     
     <% } else { %>  
         <% if (bvUser==null){
-        	response.sendRedirect("/initialize.jsp?user="+user.getNickname());        
+          response.sendRedirect("/initialize.jsp?user="+user.getNickname());        
         } %>      
         <div class="sign-up">
         <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">Sign out</a>
@@ -117,14 +117,14 @@
                <%
                    List<Entity> msgList = Util.getUserMessages(user.getEmail());
                    if(msgList!=null){
-                	   
-		                 for (Entity msgItem : msgList) {
-		               %> 
-		                   Date: <%= msgItem.getProperty("Date") %><br>
-		                   Sender: <%= msgItem.getProperty("Sender") %><br>
-		                   Message:<%= msgItem.getProperty("Message") %><br>
-		                   <hr>
-		              <% }   
+                     
+                     for (Entity msgItem : msgList) {
+                   %> 
+                       Date: <%= msgItem.getProperty("Date") %><br>
+                       Sender: <%= msgItem.getProperty("Sender") %><br>
+                       Message:<%= msgItem.getProperty("Message") %><br>
+                       <hr>
+                  <% }   
                    }               
                %>
                </div>

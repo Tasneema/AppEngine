@@ -102,17 +102,36 @@ public class SMSPolling extends HttpServlet {
 
 							    apiResponse = new JSONObject(doc.toString());
 					            if (apiResponse.getString("receivedSMS")!=null){
-					            	smsPool = apiResponse.getJSONObject("receivedSMS");  
-					            	smsInfo = smsPool.getJSONArray("receivedSMS");
-					            
 					            	String szMessage;
 					            	String szOrigin;
 					            	String szDate;
-					                    	        
-					            	for (int i=0; i<smsInfo.length(); i++){
-					            		szMessage = smsInfo.getJSONObject(i).getString("message");
-					            		szOrigin = smsInfo.getJSONObject(i).getJSONObject("originAddress").getString("phoneNumber");
-					            		szDate = smsInfo.getJSONObject(i).getString("dateTime");
+					            	
+					            	smsPool = apiResponse.getJSONObject("receivedSMS");  
+					            	smsInfo = smsPool.optJSONArray("receivedSMS");
+					                if (smsInfo!=null){	        
+						            	for (int i=0; i<smsInfo.length(); i++){
+						            		szMessage = smsInfo.getJSONObject(i).getString("message");
+						            		szOrigin = smsInfo.getJSONObject(i).getJSONObject("originAddress").getString("phoneNumber");
+						            		szDate = smsInfo.getJSONObject(i).getString("dateTime");
+						            		
+						            		StringTokenizer msgParser = new StringTokenizer(szMessage);
+				    						
+			    							// Removing app id
+			    							msgParser.nextToken();
+			    							
+			    							String userAlias = msgParser.nextToken();
+			    							
+			    							String msg = "";
+			    							while (msgParser.hasMoreTokens())
+			    								msg += " "+ msgParser.nextToken();    						    					    	
+	
+			    							Util.addUserMessage(userAlias, szOrigin, msg, szDate);		    							
+						            	}
+					                }else{
+					                	JSONObject sms = smsPool.getJSONObject("receivedSMS");
+										szMessage = sms.getString("message");
+										szOrigin = sms.getJSONObject("originAddress").getString("phoneNumber");
+										szDate = sms.getString("dateTime");
 					            		
 					            		StringTokenizer msgParser = new StringTokenizer(szMessage);
 			    						
@@ -125,8 +144,8 @@ public class SMSPolling extends HttpServlet {
 		    							while (msgParser.hasMoreTokens())
 		    								msg += " "+ msgParser.nextToken();    						    					    	
 
-		    							Util.addUserMessage(userAlias, szOrigin, msg, szDate);		    							
-					            	}
+		    							Util.addUserMessage(userAlias, szOrigin, msg, szDate);	
+					                }
 					            }else{
 					            	logger.warning("No messages");
 					            	if (txn.isActive())

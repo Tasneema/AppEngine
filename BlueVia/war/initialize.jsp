@@ -31,8 +31,8 @@
   User user = userService.getCurrentUser();
   
   if (Util.getUser(user.getEmail())==null){
-	  Date date = new Date();
-	  Util.addUser(user.getEmail(),user.getNickname(),date.getTime());
+    Date date = new Date();
+    Util.addUser(user.getEmail(),user.getNickname(),date.getTime());
   }
   %>
   <div>

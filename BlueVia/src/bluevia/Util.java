@@ -241,10 +241,11 @@ public class Util {
 	
 	public static class BlueViaOAuth{
 		final public static String networkID = "BlueViaAccount";
-		final public static String consumer_key="vD12072833882323";
-		final public static String consumer_secret="XTla79065935";
+		final public static String consumer_key="Ze12091125745565";
+		final public static String consumer_secret="vVcY01133464";
 		final public static String url_request_token="https://api.bluevia.com/services/REST/Oauth/getRequestToken/";
-		final public static String url_authorize="https://connect.bluevia.com/authorise/";
+		//final public static String url_authorize="https://connect.bluevia.com/authorise/";
+		final public static String url_authorize="https://bluevia.com/test-apps/authorise";
 		final public static String url_access_token="https://api.bluevia.com/services/REST/Oauth/getAccessToken/";
 	}	
 	
