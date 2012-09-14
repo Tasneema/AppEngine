@@ -35,9 +35,6 @@
     Util.addUser(user.getEmail(),user.getNickname(),date.getTime());
   }
   %>
-  <div>
-    <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">Sign out</a>
-  </div>
   Before to start, you should authorize. 
   <table> 
       <tr>

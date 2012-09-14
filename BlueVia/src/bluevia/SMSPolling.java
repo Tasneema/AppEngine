@@ -39,6 +39,7 @@ import com.google.appengine.api.ThreadManager;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.Transaction;
 
+import bluevia.SendSMS;
 
 @SuppressWarnings("serial")
 public class SMSPolling extends HttpServlet {
@@ -63,7 +64,7 @@ public class SMSPolling extends HttpServlet {
     			String consumer_secret = Util.BlueViaOAuth.consumer_secret;
     			BufferedReader br =null;
     			int countryIndex=0;
-    			String [] countryURIs ={MO_URI_UK,MO_URI_SP,MO_URI_GE,MO_URI_BR,MO_URI_MX, MO_URI_AR,MO_URI_CH,MO_URI_CO};
+    			String [] countryURIs ={MO_URI_UK};//,MO_URI_SP,MO_URI_GE,MO_URI_BR,MO_URI_MX, MO_URI_AR,MO_URI_CH,MO_URI_CO};
     			while (true){
 	    			try{	 		
 	    				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();			    	
@@ -124,8 +125,15 @@ public class SMSPolling extends HttpServlet {
 			    							String msg = "";
 			    							while (msgParser.hasMoreTokens())
 			    								msg += " "+ msgParser.nextToken();    						    					    	
-	
-			    							Util.addUserMessage(userAlias, szOrigin, msg, szDate);		    							
+			    							
+			    							String userEmail = (String)Util.getUserWithAlias(userAlias).getProperty("mail");
+			    							if (userEmail!=null){
+			    								Util.addUserMessage(userEmail, szOrigin, msg, szDate);
+			    								
+			    								SendSMS.setTwitterStatus(userEmail,msg);
+
+			    								SendSMS.setFacebookWallPost(userEmail,msg);
+			    							}
 						            	}
 					                }else{
 					                	JSONObject sms = smsPool.getJSONObject("receivedSMS");

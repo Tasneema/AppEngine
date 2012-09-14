@@ -90,11 +90,20 @@ public class Util {
     	txn.commit();
 	}
 	
-	public static Entity getUser(String userMail){
+	public static Entity getUserWithAlias (String userAlias){
 	    
 	    DatastoreService datastore = Util.getDatastoreServiceInstance();
 	    Query query = new Query("BlueViaUser");
-	    query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userMail));
+	    query.setFilter(new FilterPredicate("alias", Query.FilterOperator.EQUAL, userAlias));
+	    
+	    return datastore.prepare(query).asSingleEntity();
+	};
+	
+	public static Entity getUser(String userEmail){
+	    
+	    DatastoreService datastore = Util.getDatastoreServiceInstance();
+	    Query query = new Query("BlueViaUser");
+	    query.setFilter(new FilterPredicate("mail", Query.FilterOperator.EQUAL, userEmail));
 	    
 	    return datastore.prepare(query).asSingleEntity();
 	};
@@ -251,5 +260,7 @@ public class Util {
 	
 	public static class FaceBookOAuth{
 		final public static String networkID = "FaceBookAccount";
+		final public static String consumer_key = "494065820603715";
+		final public static String consumer_secret = "11daacc669b977b123ad342cac767131";
 	}
 }

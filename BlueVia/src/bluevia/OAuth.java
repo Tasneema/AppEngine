@@ -16,7 +16,11 @@
 
 package bluevia;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
@@ -51,7 +55,10 @@ public class OAuth extends HttpServlet {
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		String network = req.getParameter("network");
 		String step    = req.getParameter("step");
-		
+		// Fixing Facebook oAuth 
+		if (step==null)
+			step = req.getParameter("state");
+			
 		if (network.compareTo("twitter")==0){
 			resp.sendRedirect(oAuthTwitter(req,step));			
 		}else if (network.compareTo("bluevia")==0){
@@ -65,6 +72,65 @@ public class OAuth extends HttpServlet {
 	// FIXME
 	private String oAuthFacebook(HttpServletRequest req,String step){
 		String oAuthUrl="/index.jsp";
+		
+		if (step.compareTo("1")==0){
+			oAuthUrl="https://www.facebook.com/dialog/oauth/?client_id="+Util.FaceBookOAuth.consumer_key +
+					 "&redirect_uri=http://localhost:8888/oauth?network=facebook&step=2" +
+					 "&scope=user_status,user_location,email,publish_checkins,publish_actions"+
+					 "&state=2";
+		}else{
+			String code = req.getParameter("code");
+			
+			oAuthUrl="https://graph.facebook.com/oauth/access_token?"+
+					 "client_id="+Util.FaceBookOAuth.consumer_key+
+					 "&redirect_uri=http://localhost:8888/oauth?network=facebook&step=3"+
+					 "&client_secret="+Util.FaceBookOAuth.consumer_secret+
+					 "&code="+ code;
+			try{
+				URL apiURI = new URL (oAuthUrl);
+				HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();			
+				request.setRequestMethod("GET");
+				
+				int rc = request.getResponseCode();
+
+				if (rc==HttpURLConnection.HTTP_OK){	
+					BufferedReader br = new BufferedReader (new InputStreamReader (request.getInputStream()));
+					StringBuffer doc = new StringBuffer();
+					String line;
+
+					do{
+						line = br.readLine();
+						if (line!=null)
+							doc.append(line);
+					}while (line!=null);
+					
+					StringTokenizer paramParser = new StringTokenizer(doc.toString());
+					String access_token;
+					do{
+						String param = paramParser.nextToken("&");
+						StringTokenizer valueParser = new StringTokenizer(param);
+						String name = valueParser.nextToken("=");
+						if (name.compareTo("access_token")==0){
+							access_token = valueParser.nextToken("=");
+							break;
+						}
+					}while (true);
+					
+					UserService userService = UserServiceFactory.getUserService();
+					User user = userService.getCurrentUser();
+					
+					Util.addNetworkAccount(user.getEmail(),Util.FaceBookOAuth.networkID,
+							Util.FaceBookOAuth.consumer_key,
+							Util.FaceBookOAuth.consumer_secret,
+							access_token,"");
+				}
+				
+			}catch(Exception e){
+				logger.severe("Error: "+e.getMessage());
+			}
+			
+			oAuthUrl="/initialize.jsp";
+		}
 		
 		return oAuthUrl;
 	}

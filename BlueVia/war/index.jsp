@@ -71,13 +71,10 @@
   </head>
 <body>
 <%
-  User user=null;
   Entity bvUser=null;
   
   UserService userService = UserServiceFactory.getUserService();
-  user = userService.getCurrentUser();
-  if (user!=null)
-    bvUser=Util.getUser(user.getEmail());
+  User user = userService.getCurrentUser();    
 %>   
  <div class="main">
     <img src="images/BV-728x90.png" style="width:100%;"/>
@@ -89,7 +86,9 @@
       Welcome to Bluevia @ Google App Engine.<br>
       Sign up to start playing with BlueVia APIs        
     </div>     
-    <% } else { %>  
+    <% } else { 
+    	     bvUser=Util.getUser(user.getEmail());
+    %>  
         <% if (bvUser==null){
           response.sendRedirect("/initialize.jsp?user="+user.getNickname());        
         } %>      
