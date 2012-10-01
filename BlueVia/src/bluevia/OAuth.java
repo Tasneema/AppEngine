@@ -75,7 +75,7 @@ public class OAuth extends HttpServlet {
 		
 		if (step.compareTo("1")==0){
 			oAuthUrl="https://www.facebook.com/dialog/oauth/?client_id="+Util.FaceBookOAuth.consumer_key +
-					 "&redirect_uri=http://localhost:8888/oauth?network=facebook&step=2" +
+					 "&redirect_uri="+ Util.getCallbackDomain() +"/oauth?network=facebook&step=2" +
 					 "&scope=user_status,user_location,email,publish_checkins,publish_actions"+
 					 "&state=2";
 		}else{
@@ -83,7 +83,7 @@ public class OAuth extends HttpServlet {
 			
 			oAuthUrl="https://graph.facebook.com/oauth/access_token?"+
 					 "client_id="+Util.FaceBookOAuth.consumer_key+
-					 "&redirect_uri=http://localhost:8888/oauth?network=facebook&step=3"+
+					 "&redirect_uri="+ Util.getCallbackDomain() +"/oauth?network=facebook&step=3"+
 					 "&client_secret="+Util.FaceBookOAuth.consumer_secret+
 					 "&code="+ code;
 			try{
@@ -145,14 +145,14 @@ public class OAuth extends HttpServlet {
 		OAuthProvider apiProvider = new DefaultOAuthProvider(
 				BlueViaOAuth.url_request_token,
 				BlueViaOAuth.url_access_token,
-				BlueViaOAuth.url_authorize);
+				BlueViaOAuth.url_authorize());
 		
 		apiConsumer.setMessageSigner(new HmacSha1MessageSigner()); 
 		
 		try{
 			if (step.compareTo("1")==0){   
 
-				oAuthUrl= apiProvider.retrieveRequestToken(apiConsumer,"http://localhost:8888/oauth?network=bluevia&step=2");
+				oAuthUrl= apiProvider.retrieveRequestToken(apiConsumer,Util.getCallbackDomain() +"/oauth?network=bluevia&step=2");
 		
 				req.getSession().setAttribute("request_key", apiConsumer.getToken());
 				req.getSession().setAttribute("request_secret", apiConsumer.getTokenSecret());
@@ -211,7 +211,7 @@ public class OAuth extends HttpServlet {
         	
 			if (step.compareTo("1")==0){
 				
-				RequestToken requestToken = twitter.getOAuthRequestToken("http://localhost:8888/oauth?network=twitter&step=2");
+				RequestToken requestToken = twitter.getOAuthRequestToken(Util.getCallbackDomain()+"/oauth?network=twitter&step=2");
 				
 				req.getSession().setAttribute("request_key", requestToken.getToken());
 				req.getSession().setAttribute("request_secret",requestToken.getTokenSecret());				

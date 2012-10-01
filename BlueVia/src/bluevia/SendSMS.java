@@ -22,6 +22,7 @@ import javax.servlet.http.*;
 
 import org.json.me.JSONObject;
 
+import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
 import com.google.appengine.api.users.UserServiceFactory;
@@ -115,43 +116,48 @@ public class SendSMS extends HttpServlet {
 	public static void setFacebookWallPost(String userEmail, String post){
 		try{
 
-			Properties blueviaAccount = Util.getNetworkAccount(userEmail,Util.FaceBookOAuth.networkID);	
+			Properties facebookAccount = Util.getNetworkAccount(userEmail,Util.FaceBookOAuth.networkID);	
 
-			String access_key = blueviaAccount.getProperty(Util.FaceBookOAuth.networkID+".access_key");
+			if (facebookAccount!=null){
+				String access_key =facebookAccount.getProperty(Util.FaceBookOAuth.networkID+".access_key");
 
-			com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
+				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
+				
+				Entity blueviaUser = Util.getUser(userEmail);
+				
+				//FIXME
+				URL fbAPI = new URL("https://graph.facebook.com/"+ (String)blueviaUser.getProperty("alias") +"/feed");
+				HttpURLConnection request = (HttpURLConnection)fbAPI.openConnection();
 
-			URL fbAPI = new URL("https://graph.facebook.com/aleonar/feed");
-			HttpURLConnection request = (HttpURLConnection)fbAPI.openConnection();
+				String content = String.format("access_token=%s&message=%s",access_key, URLEncoder.encode(post,"UTF-8"));
 
-			String content = String.format("access_token=%s&message=%s",access_key, URLEncoder.encode(post,"UTF-8"));
-			
-			request.setRequestMethod("POST");
-			request.setRequestProperty("Content-Type","javascript/text");
-			request.setRequestProperty("Content-Length", "" + Integer.toString(content.getBytes().length));
-			request.setDoOutput(true);
-			request.setDoInput(true);
+				request.setRequestMethod("POST");
+				request.setRequestProperty("Content-Type","javascript/text");
+				request.setRequestProperty("Content-Length", "" + Integer.toString(content.getBytes().length));
+				request.setDoOutput(true);
+				request.setDoInput(true);
 
-			OutputStream os = request.getOutputStream();
-			os.write(content.getBytes());
-			os.flush();
-			os.close();
+				OutputStream os = request.getOutputStream();
+				os.write(content.getBytes());
+				os.flush();
+				os.close();
 
-			BufferedReader br = new BufferedReader(new InputStreamReader(request.getInputStream()));
-			int rc = request.getResponseCode();
-			if (rc==HttpURLConnection.HTTP_OK){
-				StringBuffer body = new StringBuffer();
-				String line;
+				BufferedReader br = new BufferedReader(new InputStreamReader(request.getInputStream()));
+				int rc = request.getResponseCode();
+				if (rc==HttpURLConnection.HTTP_OK){
+					StringBuffer body = new StringBuffer();
+					String line;
 
-				do{
-					line = br.readLine();
-					if (line!=null)
-						body.append(line);
-				}while (line!=null);
+					do{
+						line = br.readLine();
+						if (line!=null)
+							body.append(line);
+					}while (line!=null);
 
-				JSONObject id = new JSONObject(body.toString());
-			}else
-				log.severe(String.format("Error %d posting FaceBook wall:%s\n",rc,request.getResponseMessage()));
+					JSONObject id = new JSONObject(body.toString());
+				}else
+					log.severe(String.format("Error %d posting FaceBook wall:%s\n",rc,request.getResponseMessage()));
+			}
 		}catch (Exception e){
 			log.severe(String.format("Exception posting FaceBook wall: %s", e.getMessage()));
 		}
@@ -160,20 +166,21 @@ public class SendSMS extends HttpServlet {
 	public static void setTwitterStatus(String userEmail, String tweet){
 		if (tweet!=null){
 			try{
-				Properties blueviaAccount = Util.getNetworkAccount(userEmail,"TwitterAccount");	
+				Properties twitterAccount = Util.getNetworkAccount(userEmail,"TwitterAccount");	
 
-				String consumer_key = blueviaAccount.getProperty("TwitterAccount.consumer_key");
-				String consumer_secret = blueviaAccount.getProperty("TwitterAccount.consumer_secret");
-				String access_key = blueviaAccount.getProperty("TwitterAccount.access_key");
-				String access_secret = blueviaAccount.getProperty("TwitterAccount.access_secret");
+				if (twitterAccount!=null){
+					String consumer_key = twitterAccount.getProperty("TwitterAccount.consumer_key");
+					String consumer_secret = twitterAccount.getProperty("TwitterAccount.consumer_secret");
+					String access_key = twitterAccount.getProperty("TwitterAccount.access_key");
+					String access_secret = twitterAccount.getProperty("TwitterAccount.access_secret");
 
-				Twitter twitter = new TwitterFactory().getInstance();
-				twitter.setOAuthConsumer(consumer_key, consumer_secret);
-				twitter.setOAuthAccessToken(new AccessToken(access_key,access_secret));
+					Twitter twitter = new TwitterFactory().getInstance();
+					twitter.setOAuthConsumer(consumer_key, consumer_secret);
+					twitter.setOAuthAccessToken(new AccessToken(access_key,access_secret));
 
-				StatusUpdate status = new StatusUpdate(tweet);
-				twitter.updateStatus(status);				 
-
+					StatusUpdate status = new StatusUpdate(tweet);
+					twitter.updateStatus(status);				 
+				}
 			}catch (TwitterException te) {
 				te.printStackTrace();
 				log.severe(te.getMessage());

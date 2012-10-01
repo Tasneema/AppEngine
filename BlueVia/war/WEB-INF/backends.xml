@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <backends>
-  <backend name="SMSPolling">
+  <backend name="initservice">
   <class>B1</class>
   <options>
     <dynamic>false</dynamic>

@@ -97,6 +97,7 @@
         </div>
         <% if (bvUser!=null){ %>             
             <div class="sign-up"> <a href="bluevia/remove-user">Delete Account</a></div>
+            <div class="sign-up"> <a href=<%="/initialize.jsp?user="+ user.getNickname() %>>Settings</a></div>
         <%} %>    
         Hello, <%=user.getNickname() %><br>
         Welcome to Bluevia @ Google App Engine.<br>
@@ -116,7 +117,7 @@
                <%
                    List<Entity> msgList = Util.getUserMessages(user.getEmail());
                    if(msgList!=null){
-                     
+                     int i=0;
                      for (Entity msgItem : msgList) {
                    %> 
                        Date: <%= msgItem.getProperty("Date") %><br>

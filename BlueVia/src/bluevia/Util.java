@@ -26,6 +26,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.Query.FilterPredicate;
+import com.google.appengine.api.utils.SystemProperty;
 
 public class Util {
 	private static DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
@@ -159,6 +160,28 @@ public class Util {
 		return msgList;
 	}
 	
+	public static void addUnsubscriptionURI(String shortNumber, String apiURI, String correlator){
+		DatastoreService datastore = Util.getDatastoreServiceInstance();
+    	Transaction txn = datastore.beginTransaction();
+    	
+		Query query = new Query("UnsubscriptionURI");
+    	query.setFilter(new FilterPredicate("shortNumber", Query.FilterOperator.EQUAL, shortNumber));
+    	
+    	Entity unSubscriptionURI = datastore.prepare(query).asSingleEntity();
+    	 	
+    	if (unSubscriptionURI==null){	
+    		
+		    unSubscriptionURI = new Entity("UnsubscriptionURI");
+		    
+		    unSubscriptionURI.setProperty("shortNumber", shortNumber);
+		    unSubscriptionURI.setProperty("apiURI", apiURI);
+		    unSubscriptionURI.setProperty("correlator", correlator);
+	    	
+		    datastore.put(unSubscriptionURI);								    
+    	}
+	    txn.commit();
+	}
+	
 	public static void addNetworkAccount(String userMail, String network,String consumer_key, String consumer_secret, String access_key, String access_secret){
 				
 		DatastoreService datastore = Util.getDatastoreServiceInstance();
@@ -238,6 +261,16 @@ public class Util {
         }
         txn.commit();            	
 	}
+	
+	public static String getCallbackDomain(){
+		String callbackDomain="http://localhost:8888";
+		
+		if (SystemProperty.environment.value() == SystemProperty.Environment.Value.Production) {
+			callbackDomain="https://net-bluevia.appspot.com";
+		}
+		
+		return callbackDomain;
+	}
             
 	public static class TwitterOAuth{
 		final public static String networkID = "TwitterAccount";
@@ -253,9 +286,18 @@ public class Util {
 		final public static String consumer_key="Ze12091125745565";
 		final public static String consumer_secret="vVcY01133464";
 		final public static String url_request_token="https://api.bluevia.com/services/REST/Oauth/getRequestToken/";
-		//final public static String url_authorize="https://connect.bluevia.com/authorise/";
-		final public static String url_authorize="https://bluevia.com/test-apps/authorise";
+		
+		public static String url_authorize(){
+			String url_authorize="https://bluevia.com/test-apps/authorise";
+			if (SystemProperty.environment.value() == SystemProperty.Environment.Value.Production) {
+				url_authorize="https://connect.bluevia.com/authorise/";
+			}
+			return url_authorize;
+		}
+		
 		final public static String url_access_token="https://api.bluevia.com/services/REST/Oauth/getAccessToken/";
+		
+		final public static String app_keyword="mallrats";
 	}	
 	
 	public static class FaceBookOAuth{
