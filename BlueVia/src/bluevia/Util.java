@@ -24,6 +24,7 @@ import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Query.SortDirection;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.Query.FilterPredicate;
 import com.google.appengine.api.utils.SystemProperty;
@@ -150,11 +151,12 @@ public class Util {
         if (user!=null){
             Key userKey = user.getKey();
             
-            Query msgQuery= new Query();
+            Query msgQuery= new Query("Message");
             msgQuery.setAncestor(userKey);
+            msgQuery.addSort(Entity.KEY_RESERVED_PROPERTY, SortDirection.DESCENDING);
+            msgQuery.addSort("Date",SortDirection.DESCENDING);
             msgQuery.setFilter(new FilterPredicate(Entity.KEY_RESERVED_PROPERTY,Query.FilterOperator.GREATER_THAN,userKey));
-                                  
-            msgList = datastore.prepare(msgQuery).asList(FetchOptions.Builder.withLimit(5));
+            msgList = datastore.prepare(msgQuery).asList(FetchOptions.Builder.withLimit(4));
         }
 		
 		return msgList;

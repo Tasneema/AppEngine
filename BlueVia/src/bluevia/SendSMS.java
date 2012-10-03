@@ -58,61 +58,65 @@ public class SendSMS extends HttpServlet {
 		UserService userService = UserServiceFactory.getUserService();
 		User user = userService.getCurrentUser();
 		
-		if ((phone_number!=null)&&(sms_message!=null)){
+		if ((phone_number!=null)&&(sms_message!=null)&&(user!=null)){
 
 			setTwitterStatus(user.getEmail(),sms_message);
 
 			setFacebookWallPost(user.getEmail(),sms_message);
-
-			try{
-				
-				Properties blueviaAccount = Util.getNetworkAccount(user.getEmail(),"BlueViaAccount");	
-				if (blueviaAccount!=null){
-					String consumer_key = blueviaAccount.getProperty("BlueViaAccount.consumer_key");
-					String consumer_secret = blueviaAccount.getProperty("BlueViaAccount.consumer_secret");
-					String access_key = blueviaAccount.getProperty("BlueViaAccount.access_key");
-					String access_secret = blueviaAccount.getProperty("BlueViaAccount.access_secret");
-
-					com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
-
-					OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer(consumer_key, consumer_secret);
-					consumer.setMessageSigner(new HmacSha1MessageSigner());
-					consumer.setTokenWithSecret(access_key, access_secret);
-
-					URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS/outbound/requests?version=v1");
-					HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();
-
-					request.setRequestProperty("Content-Type", "application/json");
-					request.setRequestMethod("POST");
-					request.setDoOutput(true);
-
-					consumer.sign(request);
-					request.connect();
-
-					String smsTemplate = "{\"smsText\": {\n  \"address\": {\"phoneNumber\": \"%s\"},\n  \"message\": \"%s\",\n  \"originAddress\": {\"alias\": \"%s\"},\n}}";
-					String smsMsg = String.format(smsTemplate, phone_number, sms_message, access_key);
-
-					OutputStream os = request.getOutputStream();
-					os.write(smsMsg.getBytes());
-					os.flush();
-
-					int rc =request.getResponseCode(); 
-
-					if (rc==HttpURLConnection.HTTP_CREATED)
-						log.info(String.format("SMS sent to %s. Text: %s",phone_number,sms_message));
-					else
-						log.severe(String.format("Error %d sending SMS:%s\n",rc,request.getResponseMessage()));									
-				}else
-					log.warning("BlueVia Account seems to be not configured!");
-
-			}catch (Exception e){
-				log.severe(String.format("Exception sending SMS: %s", e.getMessage()));
-			}
+			
+			sendBlueViaSMS(user.getEmail(),phone_number,sms_message);
 		}
 
 		resp.sendRedirect("/index.jsp");
 	}
 
+	public static void sendBlueViaSMS(String user_email,String phone_number,String sms_message){
+		try{
+			
+			Properties blueviaAccount = Util.getNetworkAccount(user_email,"BlueViaAccount");	
+			if (blueviaAccount!=null){
+				String consumer_key = blueviaAccount.getProperty("BlueViaAccount.consumer_key");
+				String consumer_secret = blueviaAccount.getProperty("BlueViaAccount.consumer_secret");
+				String access_key = blueviaAccount.getProperty("BlueViaAccount.access_key");
+				String access_secret = blueviaAccount.getProperty("BlueViaAccount.access_secret");
+
+				com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
+
+				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer(consumer_key, consumer_secret);
+				consumer.setMessageSigner(new HmacSha1MessageSigner());
+				consumer.setTokenWithSecret(access_key, access_secret);
+
+				URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS/outbound/requests?version=v1");
+				HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();
+
+				request.setRequestProperty("Content-Type", "application/json");
+				request.setRequestMethod("POST");
+				request.setDoOutput(true);
+
+				consumer.sign(request);
+				request.connect();
+
+				String smsTemplate = "{\"smsText\": {\n  \"address\": {\"phoneNumber\": \"%s\"},\n  \"message\": \"%s\",\n  \"originAddress\": {\"alias\": \"%s\"},\n}}";
+				String smsMsg = String.format(smsTemplate, phone_number, sms_message, access_key);
+
+				OutputStream os = request.getOutputStream();
+				os.write(smsMsg.getBytes());
+				os.flush();
+
+				int rc =request.getResponseCode(); 
+
+				if (rc==HttpURLConnection.HTTP_CREATED)
+					log.info(String.format("SMS sent to %s. Text: %s",phone_number,sms_message));
+				else
+					log.severe(String.format("Error %d sending SMS:%s\n",rc,request.getResponseMessage()));									
+			}else
+				log.warning("BlueVia Account seems to be not configured!");
+
+		}catch (Exception e){
+			log.severe(String.format("Exception sending SMS: %s", e.getMessage()));
+		}
+	}
+	
 	public static void setFacebookWallPost(String userEmail, String post){
 		try{
 

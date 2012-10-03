@@ -36,7 +36,12 @@
 <%@ page import="java.io.InputStreamReader" %>
 <%@ page import="bluevia.*" %>
 <%@ page import="bluevia.Util" %>
+<%@ page import="java.io.PrintWriter"%>
+<%@ page import="java.text.*" %>
+<%@ page import="java.util.*" %>
 <%@ page import="com.google.appengine.api.datastore.Query.SortDirection" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+
 <!DOCTYPE html>
 <html>
  <head>
@@ -111,21 +116,28 @@
                  </table>                                                                                          
              </div>
              </td>
-             <td rowspan="2" style="vertical-align:top;">
+               <td rowspan="2" style="vertical-align:top;">
                <div class="user_info" style="width:440px;height:400px;">
-               <h3><%=user.getNickname() %>'s Messages</h3>
+               <h3><%=user.getNickname() %>'s Messages</h3>             
                <%
                    List<Entity> msgList = Util.getUserMessages(user.getEmail());
                    if(msgList!=null){
-                     int i=0;
-                     for (Entity msgItem : msgList) {
-                   %> 
-                       Date: <%= msgItem.getProperty("Date") %><br>
-                       Sender: <%= msgItem.getProperty("Sender") %><br>
-                       Message:<%= msgItem.getProperty("Message") %><br>
-                       <hr>
-                  <% }   
-                   }               
+                     if (msgList.size()>0){
+                    	 for (Entity msgItem : msgList) {
+                    	   if (msgItem!=null){  
+                    	   SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy 'at' HH:mm:ss z");
+                    	   String szDate = (String)msgItem.getProperty("Date");
+                    	   Date date = null;
+                    	   if (szDate!=null){
+                    		  date = new Date( new Long ( szDate ) );
+                    		  out.println("Date: "+ sdf.format(date) + "<br>");
+                    		  out.println("Sender: "+msgItem.getProperty("Sender")+"<br>");
+                    		  out.println("Message: "+msgItem.getProperty("Message")+"<br><hr>");
+                    	   }
+                    	  }
+                       }
+                     }
+                   }
                %>
                </div>
                </td>

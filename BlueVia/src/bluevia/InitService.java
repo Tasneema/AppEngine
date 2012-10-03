@@ -84,7 +84,7 @@ public class InitService extends HttpServlet {
     			
     			com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
     			
-    			URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS_Sandbox/inbound/subscriptions?version=v1");
+    			URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS/inbound/subscriptions?version=v1");
     			           
     			HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();
     			
@@ -116,8 +116,11 @@ public class InitService extends HttpServlet {
     						
     			if (rc==HttpURLConnection.HTTP_CREATED)    				
     				Util.addUnsubscriptionURI(countryShortNumbers[i], request.getHeaderField("Location"),"bv_"+correlator.toString());
-    			else
-    				logger.severe(String.format("Error %d sending SMS:%s",rc,request.getResponseMessage())); 
+    			else{
+    				logger.severe(String.format("Error %d registering Notification URLs:%s",rc,request.getResponseMessage()));
+    				result=false;
+    				break;
+    			}
     		}catch (Exception e){
     			logger.severe("Exception raised: %s"+e.getMessage());
     		}	
