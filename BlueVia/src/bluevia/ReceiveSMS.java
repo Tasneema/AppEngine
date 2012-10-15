@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
@@ -30,14 +31,21 @@ import org.json.me.JSONObject;
 import org.json.me.JSONArray;
 import org.json.me.JSONException;
 
+import sun.awt.RepaintArea;
+
 @SuppressWarnings("serial")
 public class ReceiveSMS extends HttpServlet {
 	private static final Logger log = Logger.getLogger(ReceiveSMS.class.getName());
 
 	public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-		String contentType = req.getContentType();
-		String oauth_consumer_key="";
+
+		//Dump Http Info
+		Util.dumpHttpInfo(req);
+		resp.setStatus(HttpServletResponse.SC_NO_CONTENT);	
 		
+		/*String contentType = req.getContentType();
+		String oauth_consumer_key="";
+			
 		String htmlAuthHeader=req.getHeader("Authorization");
 		if (htmlAuthHeader!=null){
 			
@@ -112,6 +120,6 @@ public class ReceiveSMS extends HttpServlet {
 			}else
 				resp.sendError(HttpServletResponse.SC_UNAUTHORIZED);
 		}else
-			resp.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+			resp.sendError(HttpServletResponse.SC_UNAUTHORIZED);*/
 	}
 }

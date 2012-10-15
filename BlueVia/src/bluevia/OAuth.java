@@ -129,7 +129,7 @@ public class OAuth extends HttpServlet {
 				logger.severe("Error: "+e.getMessage());
 			}
 			
-			oAuthUrl="/initialize.jsp";
+			oAuthUrl="/settings.jsp";
 		}
 		
 		return oAuthUrl;
@@ -188,7 +188,7 @@ public class OAuth extends HttpServlet {
 				req.getSession().removeAttribute("request_key");
 				req.getSession().removeAttribute("request_secret");
 
-				oAuthUrl="/initialize.jsp";
+				oAuthUrl="/settings.jsp";
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -240,7 +240,7 @@ public class OAuth extends HttpServlet {
 				req.getSession().removeAttribute("request_key");
 		        req.getSession().removeAttribute("request_secret");
 		        
-		        oAuthUrl="/initialize.jsp";
+		        oAuthUrl="/settings.jsp";
 			}						
 		} catch (TwitterException e) {
 			// TODO Auto-generated catch block

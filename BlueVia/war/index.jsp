@@ -18,29 +18,10 @@
 <%@ page import="com.google.appengine.api.users.User" %>
 <%@ page import="com.google.appengine.api.users.UserService" %>
 <%@ page import="com.google.appengine.api.users.UserServiceFactory" %>
-<%@ page import="com.google.appengine.api.datastore.DatastoreService" %>
-<%@ page import="com.google.appengine.api.datastore.DatastoreServiceFactory" %>
 <%@ page import="com.google.appengine.api.datastore.Entity" %>
-<%@ page import="com.google.appengine.api.datastore.EntityNotFoundException" %>
-<%@ page import="com.google.appengine.api.datastore.Key" %>
-<%@ page import="com.google.appengine.api.datastore.KeyFactory" %>
-<%@ page import="com.google.appengine.api.datastore.Query" %>
-<%@ page import="com.google.appengine.api.datastore.FetchOptions" %>
-<%@ page import="java.util.List" %>
-<%@ page import="oauth.signpost.basic.DefaultOAuthConsumer"%>
-<%@ page import="oauth.signpost.OAuthConsumer" %>
-<%@ page import="oauth.signpost.signature.HmacSha1MessageSigner" %>
-<%@ page import="java.net.URL" %>
-<%@ page import="java.net.HttpURLConnection" %>
-<%@ page import="java.io.BufferedReader" %>
-<%@ page import="java.io.InputStreamReader" %>
-<%@ page import="bluevia.*" %>
 <%@ page import="bluevia.Util" %>
-<%@ page import="java.io.PrintWriter"%>
 <%@ page import="java.text.*" %>
 <%@ page import="java.util.*" %>
-<%@ page import="com.google.appengine.api.datastore.Query.SortDirection" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 
 <!DOCTYPE html>
 <html>
@@ -95,14 +76,14 @@
     	     bvUser=Util.getUser(user.getEmail());
     %>  
         <% if (bvUser==null){
-          response.sendRedirect("/initialize.jsp?user="+user.getNickname());        
+          response.sendRedirect("/settings.jsp?user="+user.getNickname());        
         } %>      
         <div class="sign-up">
         <a href="<%= userService.createLogoutURL(request.getRequestURI()) %>">Sign out</a>
         </div>
         <% if (bvUser!=null){ %>             
             <div class="sign-up"> <a href="bluevia/remove-user">Delete Account</a></div>
-            <div class="sign-up"> <a href=<%="/initialize.jsp?user="+ user.getNickname() %>>Settings</a></div>
+            <div class="sign-up"> <a href=<%="/settings.jsp?user="+ user.getNickname() %>>Settings</a></div>
         <%} %>    
         Hello, <%=user.getNickname() %><br>
         Welcome to Bluevia @ Google App Engine.<br>
@@ -118,7 +99,7 @@
              </td>
                <td rowspan="2" style="vertical-align:top;">
                <div class="user_info" style="width:440px;height:400px;">
-               <h3><%=user.getNickname() %>'s Messages</h3>             
+               <h3><%=user.getNickname() %>'s Messages (Last 4's)</h3>             
                <%
                    List<Entity> msgList = Util.getUserMessages(user.getEmail());
                    if(msgList!=null){

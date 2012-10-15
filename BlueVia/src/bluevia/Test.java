@@ -20,6 +20,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.users.User;
+import com.google.appengine.api.users.UserService;
+import com.google.appengine.api.users.UserServiceFactory;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -36,14 +39,20 @@ public class Test extends HttpServlet {
 	private static final Logger logger = Logger.getLogger(Util.class.getCanonicalName());
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-		logger.info("Starting the test");
+		UserService userService = UserServiceFactory.getUserService();
+		User user = userService.getCurrentUser();
 		
-		logger.info((testingUser()?"Test addUser/getUser with NO errors":"Test addUser/getUser with errors"));
+		// Only admin user is authorized
+		if (user.getNickname().compareTo("aleonar")==0){
+			logger.info("Starting the test");
 		
-		logger.info((testNetworksAccount()?"Test NetworkAccounts with NO errors":"Test NetworkAccounts with errors"));
+			logger.info((testingUser()?"Test addUser/getUser with NO errors":"Test addUser/getUser with errors"));
 		
-		logger.info((testUserMessages()?"Test UserMessages with NO errors":"Test UserMessages with errors"));
+			logger.info((testNetworksAccount()?"Test NetworkAccounts with NO errors":"Test NetworkAccounts with errors"));
 		
+			logger.info((testUserMessages()?"Test UserMessages with NO errors":"Test UserMessages with errors"));
+		}else
+			resp.sendError(HttpServletResponse.SC_FORBIDDEN);
 	}
 	
 	private boolean testUserMessages(){

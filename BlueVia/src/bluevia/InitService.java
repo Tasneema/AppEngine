@@ -16,6 +16,7 @@
 package bluevia;
 
 import java.io.BufferedReader;
+import com.google.appengine.api.LifecycleManager.*;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -38,6 +39,7 @@ import oauth.signpost.OAuthConsumer;
 import oauth.signpost.basic.DefaultOAuthConsumer;
 import oauth.signpost.signature.HmacSha1MessageSigner;
 
+import com.google.appengine.api.LifecycleManager;
 import com.google.appengine.api.ThreadManager;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.Transaction;
@@ -68,8 +70,16 @@ public class InitService extends HttpServlet {
 	private static final String MO_CO = "572505";
 	
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    	
     	if (!subscribeNotifications())
     		doPolling();
+    	
+    	LifecycleManager.getInstance().setShutdownHook(new ShutdownHook() {
+    		  public void shutdown() {
+    		    LifecycleManager.getInstance().interruptAllRequests();
+    		    Util.doUnsubscribeNotifications();
+    		  }
+    		});
     }
     
     boolean subscribeNotifications(){
@@ -84,7 +94,7 @@ public class InitService extends HttpServlet {
     			
     			com.google.appengine.api.urlfetch.FetchOptions.Builder.doNotValidateCertificate();
     			
-    			URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS/inbound/subscriptions?version=v1");
+    			URL apiURI = new URL("https://api.bluevia.com/services/REST/SMS/inbound/subscriptions?version=v1&alt=json");
     			           
     			HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();
     			
@@ -96,14 +106,13 @@ public class InitService extends HttpServlet {
     			if (correlator<0)
     				correlator= -1*correlator;
     			
-    			String jsonSubscriptionMsg="{\"smsNotification\":{\"reference\":{\"correlator\": \"%s\",\"endpoint\": \"%s\"},\"criteria\":\"%s\",\"destinationAddress\":{\"phoneNumber\":\"%s\"}}}";
-    			String szBody = String.format(jsonSubscriptionMsg,"bv_"+correlator.toString(),Util.getCallbackDomain()+"/notifySmsReception",Util.BlueViaOAuth.app_keyword,countryShortNumbers[i]);
+    			String jsonSubscriptionMsg="{\"smsNotification\":{\"reference\":{\"correlator\": \"%s\",\"endpoint\": \"%s\"},\"destinationAddress\":{\"phoneNumber\":\"%s\"},\"criteria\":\"%s\"}}";
+    			String szBody = String.format(jsonSubscriptionMsg,"bv"+correlator.toString().substring(0, 16),Util.getCallbackDomain()+"/notifySmsReception",countryShortNumbers[i],Util.BlueViaOAuth.app_keyword);
     			
     			request.setRequestProperty("Content-Type", "application/json");
     			request.setRequestProperty("Content-Length", "" + Integer.toString(szBody.getBytes().length));
     			request.setRequestMethod("POST");
     			request.setDoOutput(true);
-    			request.setDoInput(true);
     			
     			consumer.sign(request);
     			request.connect();
@@ -115,11 +124,9 @@ public class InitService extends HttpServlet {
     			int rc =request.getResponseCode(); 
     						
     			if (rc==HttpURLConnection.HTTP_CREATED)    				
-    				Util.addUnsubscriptionURI(countryShortNumbers[i], request.getHeaderField("Location"),"bv_"+correlator.toString());
+    				Util.addUnsubscriptionURI(countryShortNumbers[i], request.getHeaderField("Location"),"bv"+correlator.toString().substring(0, 16));
     			else{
     				logger.severe(String.format("Error %d registering Notification URLs:%s",rc,request.getResponseMessage()));
-    				result=false;
-    				break;
     			}
     		}catch (Exception e){
     			logger.severe("Exception raised: %s"+e.getMessage());

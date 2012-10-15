@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?><web-app xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.5" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
-    <servlet>    
-        <servlet-name>removeUser</servlet-name>
-        <servlet-class>bluevia.RemoveUser</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>removeUser</servlet-name>
-        <url-pattern>/bluevia/remove-user</url-pattern>        
-    </servlet-mapping>  
+  <welcome-file-list>
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list>  
     <servlet>
         <servlet-name>oAuth</servlet-name>
         <servlet-class>bluevia.OAuth</servlet-class>
@@ -24,14 +19,6 @@
         <url-pattern>/bluevia/send-sms</url-pattern>
     </servlet-mapping>
     <servlet>
-        <servlet-name>test</servlet-name>
-        <servlet-class>bluevia.Test</servlet-class>
-    </servlet>  
-    <servlet-mapping>
-        <servlet-name>test</servlet-name>
-        <url-pattern>/test</url-pattern>
-    </servlet-mapping>
-    <servlet>
         <servlet-name>receivesms</servlet-name>
         <servlet-class>bluevia.ReceiveSMS</servlet-class>
     </servlet>
@@ -39,6 +26,14 @@
         <servlet-name>receivesms</servlet-name>
         <url-pattern>/notifySmsReception</url-pattern>
     </servlet-mapping>
+     <security-constraint>
+      <web-resource-collection>
+            <url-pattern>/notifySmsReception</url-pattern>
+        </web-resource-collection>
+        <user-data-constraint>
+            <transport-guarantee>CONFIDENTIAL</transport-guarantee>
+        </user-data-constraint>
+    </security-constraint>
      <servlet>    
         <servlet-name>initservice</servlet-name>
         <servlet-class>bluevia.InitService</servlet-class>
@@ -47,9 +42,22 @@
         <servlet-name>initservice</servlet-name>
         <url-pattern>/_ah/start</url-pattern>        
     </servlet-mapping> 
-  <welcome-file-list>
-    <welcome-file>index.jsp</welcome-file>
-  </welcome-file-list>
+        <servlet>    
+        <servlet-name>removeUser</servlet-name>
+        <servlet-class>bluevia.RemoveUser</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>removeUser</servlet-name>
+        <url-pattern>/bluevia/remove-user</url-pattern>        
+    </servlet-mapping>  
+    <servlet>
+        <servlet-name>test</servlet-name>
+        <servlet-class>bluevia.Test</servlet-class>
+    </servlet>  
+    <servlet-mapping>
+        <servlet-name>test</servlet-name>
+        <url-pattern>/test</url-pattern>
+    </servlet-mapping>
  <servlet>    
   <servlet-name>SystemServiceServlet</servlet-name>
   <servlet-class>com.google.api.server.spi.SystemServiceServlet</servlet-class>
@@ -62,12 +70,4 @@
   <servlet-name>SystemServiceServlet</servlet-name>
   <url-pattern>/_ah/spi/*</url-pattern>
  </servlet-mapping>
- <security-constraint>
-      <web-resource-collection>
-            <url-pattern>/notifySmsReception</url-pattern>
-        </web-resource-collection>
-        <user-data-constraint>
-            <transport-guarantee>CONFIDENTIAL</transport-guarantee>
-        </user-data-constraint>
- </security-constraint>
 </web-app>

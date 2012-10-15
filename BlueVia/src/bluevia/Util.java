@@ -15,8 +15,20 @@
 */
 package bluevia;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Logger;
+
+import javax.servlet.http.HttpServletRequest;
+
+import oauth.signpost.OAuthConsumer;
+import oauth.signpost.basic.DefaultOAuthConsumer;
+import oauth.signpost.signature.HmacSha1MessageSigner;
 
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
@@ -31,6 +43,32 @@ import com.google.appengine.api.utils.SystemProperty;
 
 public class Util {
 	private static DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+	
+	private static final Logger log = Logger.getLogger(SendSMS.class.getName());
+	
+	public static void dumpHttpInfo(HttpServletRequest req){
+		if (req!=null){
+			try{
+			StringBuffer logInfo = new StringBuffer();
+			logInfo.append("\n\n"+req.getRequestURL() + " " +req.getMethod()+"\n");
+			Enumeration<String> headers = req.getHeaderNames();
+			while (headers.hasMoreElements()){
+					String header = headers.nextElement();
+					logInfo.append(String.format("%s: %s\n",header,req.getHeader(header)));
+				}
+				logInfo.append("\n");
+				BufferedReader bodyBr = new BufferedReader(new InputStreamReader(req.getInputStream()));
+				String bodyLine = bodyBr.readLine();
+				while (bodyLine != null) {
+					logInfo.append(bodyLine);
+					bodyLine = bodyBr.readLine();
+				}
+				log.severe(logInfo.toString());
+			}catch (Exception e){
+				log.severe(e.getMessage());
+			}
+		}
+	}
 	
 	public static DatastoreService getDatastoreServiceInstance(){
 		  return datastore;
@@ -160,6 +198,38 @@ public class Util {
         }
 		
 		return msgList;
+	}
+	
+	public static void doUnsubscribeNotifications(){
+		
+		List<Entity> uriList=null;
+		
+		DatastoreService datastore = Util.getDatastoreServiceInstance();
+    	Transaction txn = datastore.beginTransaction();
+    	
+		Query query = new Query("UnsubscriptionURI");
+		uriList = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
+		for(Entity uri: uriList){
+			try{				
+				OAuthConsumer consumer = (OAuthConsumer) new DefaultOAuthConsumer(Util.BlueViaOAuth.consumer_key, Util.BlueViaOAuth.consumer_secret);
+				consumer.setMessageSigner(new HmacSha1MessageSigner());
+				
+				URL apiURI = new URL(uri+"?version=v1");
+				HttpURLConnection request = (HttpURLConnection)apiURI.openConnection();
+				
+				request.setRequestMethod("DELETE");
+				consumer.sign(request);
+				request.connect();
+				int rc=request.getResponseCode(); 
+				
+				if (rc==HttpURLConnection.HTTP_NO_CONTENT)
+					log.info("Notification URI: "+uri+"\nDone!");
+				else
+					log.severe(String.format("Error %d Unsubscribing Notifications: %s",rc,request.getResponseMessage())); 
+			}catch(Exception e){
+				log.severe("Exception raised: %s"+e.getMessage());
+			}
+		}
 	}
 	
 	public static void addUnsubscriptionURI(String shortNumber, String apiURI, String correlator){
